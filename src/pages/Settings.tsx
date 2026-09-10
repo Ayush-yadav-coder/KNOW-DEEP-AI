@@ -27,6 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { PolicyLinks } from "@/components/PolicyLinks";
 import { CustomizeNavModal } from "@/components/CustomizeNavModal";
 import { NavDragDropCustomizer } from "@/components/NavDragDropCustomizer";
+import { PricingTiers } from "@/components/PricingTiers";
 import { useAppStore } from "@/store/useAppStore";
 
 interface Plan {
@@ -558,24 +559,8 @@ export default function Settings() {
 
           {/* Subscription Tab */}
           <TabsContent value="subscription">
-            <Card className="glass-card rounded-2xl border-0">
-              <CardHeader className="text-center">
-                <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-4">
-                  <Crown className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-2xl">Upgrade to Premium</CardTitle>
-                <CardDescription>
-                  Unlock Know Deep Turbo, faster generations, and unlimited AI access.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center pb-8">
-                <Button 
-                  onClick={() => navigate("/pricing")}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 hover:opacity-90 rounded-xl px-8 h-12 text-lg shadow-lg shadow-amber-500/20"
-                >
-                  View Pricing Plans <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </CardContent>
+            <Card className="glass-card rounded-2xl border-0 p-4 sm:p-6 shadow-xl">
+              <PricingTiers />
             </Card>
           </TabsContent>
         </Tabs>

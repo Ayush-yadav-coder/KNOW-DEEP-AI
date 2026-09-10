@@ -24,6 +24,8 @@ export interface AppPreferences {
   theme: "dark" | "light" | "system";
   systemInstructions: string;
   displayName: string;
+  age?: string;
+  purpose?: string;
   weatherApiKey?: string;
   sportsApiKey?: string;
   customFeatureOrder?: string[];
