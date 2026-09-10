@@ -1,0 +1,10 @@
+- [x] Audit current routes and feature navigation
+- [ ] Restrict navigation and routing to the 15 approved features
+- [ ] Remove deprecated feature modules and references
+- [ ] Fix desktop drawer scrolling and mobile paginated bottom navigation
+- [ ] Verify chat input and follow-up wrapping
+- [ ] Build the remaining feature workspaces
+- [ ] Add the 17-step onboarding tour and completion state
+- [ ] Wire attachments and vision payloads across approved inputs
+- [ ] Add protected MCP consent and per-user access
+- [ ] Validate remaining references and app build

@@ -1,11 +1,26 @@
-<div align="center">
+# Omni AI Assistant
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+I want to make a best ai app name know deepand all features of this ai app : chat GPT, Gemini, perplexity, Microsoft co pilot, lovable, siri, alexa, meta ai, deep seek and grok ai , add all features
 
-  <h1>Built with AI Studio</h2>
+This project was built with [Lovable](https://lovable.dev).
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+**Live app**: https://know-deep.lovable.app
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Build with Lovable
 
-</div>
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/cf5efbc6-f367-4644-8049-fb5b2ebfa54c).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+
+```sh
+git clone <this-repository-url>
+cd <repository-name>
+npm i
+npm run dev
+```
