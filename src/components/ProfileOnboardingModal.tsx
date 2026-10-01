@@ -138,6 +138,11 @@ export const ProfileOnboardingModal: React.FC = () => {
       age: finalAge,
       purpose: finalPurpose,
     });
+    localStorage.setItem("knowdeep_display_name", finalName);
+    localStorage.setItem("knowdeep_user_name", finalName);
+    window.dispatchEvent(
+      new CustomEvent("knowdeep_name_updated", { detail: { name: finalName } })
+    );
     localStorage.setItem(`onboarded_${user.id}`, "true");
     localStorage.setItem(
       `profile_settings_${user.id}`,
@@ -226,7 +231,7 @@ export const ProfileOnboardingModal: React.FC = () => {
     if (step === 3) setStep(2);
   };
 
-  if (loading || !isOpen) return null;
+  if (loading) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleDismiss(); }}>

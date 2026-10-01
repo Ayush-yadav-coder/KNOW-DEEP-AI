@@ -13,7 +13,7 @@ import {
   BookOpen,
   Terminal,
   Languages,
-  BookMarked,
+  Video,
   Presentation,
 } from "lucide-react";
 
@@ -45,8 +45,8 @@ export const PLATFORM_15_FEATURES: FeatureDirectoryItem[] = [
   // Page 3: Features 11 – 15
   { id: "ncert", name: "11. NCERT Tutor", shortLabel: "NCERT", href: "/ncert-tutor", icon: BookOpen, color: "from-teal-500 to-emerald-600" },
   { id: "code", name: "12. Code Studio", shortLabel: "Code", href: "/code-studio", icon: Terminal, color: "from-emerald-400 to-cyan-500" },
-  { id: "translate", name: "13. Translate Studio", shortLabel: "Translate", href: "/translate-studio", icon: Languages, color: "from-blue-500 to-teal-500" },
-  { id: "learning-hub", name: "14. Learning Hub", shortLabel: "Learn", href: "/learning-hub", icon: BookMarked, color: "from-violet-500 to-purple-600" },
+  { id: "translate", name: "13. Translator", shortLabel: "Translator", href: "/translator", icon: Languages, color: "from-blue-500 to-teal-500" },
+  { id: "video-studio", name: "14. Video Studio", shortLabel: "Videos", href: "/video-studio", icon: Video, color: "from-red-500 to-amber-500" },
   { id: "presentation", name: "15. Presentation Studio", shortLabel: "Slides", href: "/presentation-studio", icon: Presentation, color: "from-orange-500 to-pink-500" },
 ];
 

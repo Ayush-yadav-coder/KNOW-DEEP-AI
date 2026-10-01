@@ -5,42 +5,62 @@ import { useNavigate } from "react-router-dom";
 
 const sections = [
   {
-    title: "1. Eligibility and Accounts",
-    body: `To use the application, you must complete our login registration. You agree to provide true, accurate, and complete registration information. You are solely responsible for safeguarding your authentication credentials and for all operations or code updates run under your user profile.`,
+    title: "1. Acceptance and User Agreement",
+    body: `These Terms of Service constitute a legally binding agreement between you ("User") and Know Deep AI. Accessing or using the platform indicates your agreement to these terms. If you do not agree to every provision, you are prohibited from using the platform.`,
   },
   {
-    title: "2. Acceptable Use Guidelines",
-    body: `You may not access or use the platform for any purpose other than its intended design as an AI exploration, development, and visual research workspace. Prohibited activities include, but are not limited to:
+    title: "2. Platform Description & Service Availability",
+    body: `Know Deep is an artificial intelligence application offering automated chat, text synthesis, programming code generation, and interactive digital assistance.
 
-• Attempting to bypass security protocols, reverse-engineer the source code files, or break the application's api infrastructure.
-• Using the App Builder to programmatically build, deploy, or host illegal, malicious, or harmful software scripts.
-• Utilizing the camera tools or file upload tracks to distribute copyrighted assets or explicit material.`,
-  },
-  {
-    title: "3. AI-Generated Content and Disclaimers",
-    body: `Nature of AI Outputs: Our platform leverages advanced multimodal models to deliver code fragments, language translations, academic summaries, and product reviews. AI models can occasionally produce inaccurate text, hallucinations, or broken code snippets.
+Service Availability: We strive for continuous uptime, but Know Deep does not guarantee 100% uninterrupted platform access. Outages, maintenance windows, or third-party cloud infrastructure delays may temporarily affect platform performance.
 
-No Warranty: All AI responses, price conversions (such as Indian Rupee conversions), and code fixes are provided on an "as-is" basis. We offer no warranties that the generated outputs are error-free, secure, or ready for production development without human evaluation.
+Feature Evolution: Know Deep reserves the right to modify, upgrade, or deprecate specific UI components, AI model versions, or features at any time without prior notice.`,
+  },
+  {
+    title: "3. AI Output Disclaimer, Accuracy & Responsibility",
+    body: `Probabilistic AI Nature: AI-generated outputs (text, solutions, summaries, and code) are produced by complex machine learning algorithms. Outputs may occasionally contain factual errors, outdated references, or bug-prone code.
 
-Third-Party Marketplace Links: E-commerce pricing arrays and links to marketplaces (like Amazon or Flipkart) are provided for reference only. We do not control or endorse the content, policies, or product availability on external vendor websites.`,
-  },
-  {
-    title: "4. Intellectual Property Rights",
-    body: `Our Platform Proprietary Rights: We retain all rights, titles, and ownership over our platform's proprietary code frameworks, UI configurations, logos, animations, and visual design assets.
+User Verification Obligation: The user is strictly responsible for inspecting, testing, and verifying any AI-generated code or information before executing it in production, utilizing it for business, or relying on it for decisions.
 
-User Creations: You retain ownership over the original prompt instructions, custom application designs, and files you construct while interacting with our App Builder modules.`,
+No Certified Guarantees: Know Deep AI outputs do not constitute certified legal, medical, financial, or formal engineering advice.`,
   },
   {
-    title: "5. Limitation of Liability",
-    body: `To the maximum extent permitted by applicable law, Know Deep and its developers shall not be held liable for any direct, indirect, incidental, or consequential damages resulting from app downtime, software failures, lost database code, or reliance on AI-generated information.`,
+    title: "4. Prohibited Activities and User Conduct",
+    body: `You agree NOT to use Know Deep to:
+
+Generate malware, keyloggers, exploits, or malicious code designed to disrupt computer networks.
+
+Bypass or exploit platform security controls, rate-limiting systems, or backend API routes.
+
+Submit content that violates third-party copyright, trademark, or intellectual property rights.
+
+Engage in automated scraping, bot attacks, or Denial-of-Service (DoS) activities against our Vercel hosting infrastructure.
+
+Generate hate speech, sexually explicit materials, harassing content, or harmful material targeting any individual or group.
+
+Violation of these conduct rules will result in immediate account suspension or permanent termination without notice.`,
   },
   {
-    title: "6. Termination",
-    body: `We reserve the right, without notice or liability, to suspend, terminate, or restrict your account access if we determine, in our sole discretion, that your interactions violate these Terms or threaten our system infrastructure.`,
+    title: "5. Intellectual Property Rights and Output Ownership",
+    body: `User Prompts: Users retain all intellectual property rights to the original text, files, and prompts submitted to the Platform.
+
+AI Outputs: Subject to compliance with these Terms, users are granted full commercial and non-commercial usage rights to the specific AI responses generated for them by Know Deep.
+
+Know Deep Proprietary Assets: All visual designs, custom frontend interface code, brand logos, graphics, and unique platform workflows remain the exclusive intellectual property of Know Deep.`,
   },
   {
-    title: "7. Contact Us",
-    body: `For questions, notices, or formal clarifications regarding these Terms of Service, please reach out to us at: ayushyadavprocoder@gmail.com`,
+    title: "6. Limitation of Liability & Warranty Disclaimer",
+    body: `"AS-IS" Provision: Know Deep AI is provided strictly on an "AS-IS" and "AS-AVAILABLE" basis without warranties of any kind, whether express, implied, or statutory.
+
+Liability Cap: To the maximum extent allowed by law, Know Deep AI and its operators, developers, and hosting partners shall not be held liable for any direct, indirect, incidental, special, or consequential damages (including loss of data, lost profits, or system crashes) resulting from your use of the platform or reliance on AI outputs.`,
+  },
+  {
+    title: "7. Account Termination",
+    body: `Know Deep reserves the right to suspend or terminate user accounts, restrict access to features, or purge profile data at its sole discretion for violations of these Terms or abusive platform usage.`,
+  },
+  {
+    title: "8. Amendments to Terms",
+    body: `We reserve the right to revise or replace these Terms at any time. Updates will be published directly on the platform page with a revised effective date. Continued use of Know Deep following any changes signifies your agreement to the updated Terms.`,
   },
 ];
 
@@ -53,22 +73,27 @@ export default function TermsOfService() {
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-          <div className="text-center mb-12">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20">
               <FileText className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-4xl font-bold gradient-text mb-2">Terms of Service</h1>
-            <p className="text-muted-foreground">Last updated: June 2026</p>
+            <h1 className="text-4xl font-bold gradient-text mb-2">Terms of Service & Acceptable Use</h1>
+            <p className="text-muted-foreground text-sm font-medium">Effective Date: September 18, 2026</p>
           </div>
 
-          <div className="glass-card rounded-2xl p-8 space-y-6">
-            <p className="text-lg text-foreground leading-relaxed">
-              These Terms of Service ("Terms") constitute a legally binding agreement made between you ("User") and Know Deep ("we," "us," or "our"), concerning your access to and use of our AI utility ecosystem, mobile layout, and tools. By creating an account or accessing our services, you agree to be bound by these Terms.
+          {/* Top Notice Box */}
+          <div className="p-5 rounded-2xl bg-purple-500/10 border border-purple-500/20 shadow-sm space-y-1.5">
+            <p className="text-sm font-semibold text-purple-400">Effective Date: September 18, 2026</p>
+            <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">
+              Platform: Know Deep AI Application (“Know Deep,” “Platform,” “we,” “us,” or “our”)
             </p>
+          </div>
+
+          <div className="glass-card rounded-2xl p-6 sm:p-8 space-y-8 border border-border/40">
             {sections.map((s) => (
-              <section key={s.title}>
-                <h2 className="text-2xl font-bold mb-3 text-foreground">{s.title}</h2>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{s.body}</p>
+              <section key={s.title} className="space-y-3 pb-6 border-b border-border/20 last:border-b-0 last:pb-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">{s.title}</h2>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-line text-sm sm:text-base">{s.body}</p>
               </section>
             ))}
           </div>

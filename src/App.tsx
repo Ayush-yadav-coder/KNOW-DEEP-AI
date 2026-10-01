@@ -7,20 +7,19 @@ import SharedConversation from "./pages/SharedConversation";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { FeedbackButton } from "@/components/FeedbackButton";
 import { OfflinePage } from "@/components/OfflinePage";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
-import Profile from "./pages/Profile";
 import ImageGenerator from "./pages/ImageGenerator";
 import ImageEnhancer from "./pages/ImageEnhancer";
 import Summarizer from "./pages/Summarizer";
 import NewsFeed from "./pages/NewsFeed";
 import AppCreator from "./pages/AppCreator";
 import Gallery from "./pages/Gallery";
+import MyStuff from "./pages/MyStuff";
 import Projects from "./pages/Projects";
 import WebSearch from "./pages/WebSearch";
 import CodeInterpreter from "./pages/CodeInterpreter";
@@ -29,7 +28,7 @@ import DocumentChat from "./pages/DocumentChat";
 import DocumentStudio from "./pages/DocumentStudio";
 import HomeworkAssistant from "./pages/HomeworkAssistant";
 import Settings from "./pages/Settings";
-import LearningHub from "./pages/LearningHub";
+import VideoStudio from "./pages/VideoStudio";
 import Translator from "./pages/Translator";
 import TranslateStudio from "./pages/TranslateStudio";
 import Pricing from "./pages/Pricing";
@@ -45,24 +44,33 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ConceptXRay from "./pages/ConceptXRay";
 import MemoryCenter from "./pages/MemoryCenter";
+import ConnectedApps from "./pages/ConnectedApps";
+import { GlobalKeyboardManager } from "@/components/KeyboardShortcuts";
+import { InteractiveLiveTour } from "@/components/InteractiveLiveTour";
+
+import { useEffect } from "react";
+import { initBackgroundSyncAutoListener } from "@/lib/offlineSync";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const isOnline = useOnlineStatus();
-
-  if (!isOnline) {
-    return <OfflinePage />;
-  }
+  useEffect(() => {
+    initBackgroundSyncAutoListener();
+  }, []);
 
   return (
     <>
+      <GlobalKeyboardManager />
+      <InteractiveLiveTour />
       <Routes>
+        <Route path="/offline" element={<OfflinePage />} />
         <Route path="/" element={<Index />} />
+        <Route path="/home" element={<Index />} />
+        <Route path="/HOME" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/login" element={<Auth />} />
+        <Route path="/signup" element={<Auth />} />
         <Route path="/chat" element={<Chat />} />
-        <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/image-generator" element={<ImageGenerator />} />
         <Route path="/generate" element={<ImageGenerator />} />
@@ -77,7 +85,11 @@ const AppContent = () => {
         <Route path="/weather" element={<WeatherStation />} />
         <Route path="/weather-station" element={<WeatherStation />} />
         <Route path="/app-creator" element={<AppCreator />} />
-        <Route path="/gallery" element={<Gallery />} />
+        <Route path="/gallery" element={<MyStuff />} />
+        <Route path="/my-stuff" element={<MyStuff />} />
+        <Route path="/my-creations" element={<MyStuff />} />
+        <Route path="/connected-apps" element={<ConnectedApps />} />
+        <Route path="/connectors" element={<ConnectedApps />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/web-search" element={<WebSearch />} />
         <Route path="/search" element={<WebSearch />} />
@@ -92,11 +104,11 @@ const AppContent = () => {
         <Route path="/presentation-studio" element={<PresentationStudio />} />
         <Route path="/homework-assistant" element={<HomeworkAssistant />} />
         <Route path="/homework" element={<HomeworkAssistant />} />
-        <Route path="/learning-hub" element={<LearningHub />} />
-        <Route path="/learn" element={<LearningHub />} />
-        <Route path="/translator" element={<TranslateStudio />} />
-        <Route path="/translate-studio" element={<TranslateStudio />} />
-        <Route path="/translate" element={<TranslateStudio />} />
+        <Route path="/video-studio" element={<VideoStudio />} />
+        <Route path="/video" element={<VideoStudio />} />
+        <Route path="/translator" element={<Translator />} />
+        <Route path="/translate-studio" element={<Translator />} />
+        <Route path="/translate" element={<Translator />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/ncert-tutor" element={<NCERTTutor />} />
         <Route path="/ncert" element={<NCERTTutor />} />
@@ -110,7 +122,6 @@ const AppContent = () => {
         <Route path="/shared/:token" element={<SharedConversation />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <FeedbackButton />
     </>
   );
 };

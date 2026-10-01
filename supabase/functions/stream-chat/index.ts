@@ -55,7 +55,7 @@ serve(async (req) => {
         name: "lovable-gemini-lite",
         url: "https://ai.gateway.lovable.dev/v1/chat/completions",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}` },
-        model: "google/gemini-2.5-flash-lite",
+        model: "google/gemini-flash-latest",
       });
     }
     if (OPENAI_API_KEY) {

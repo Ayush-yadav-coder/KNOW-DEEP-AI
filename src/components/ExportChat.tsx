@@ -6,8 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, FileText, FileJson, Copy } from "lucide-react";
+import { Download, FileText, FileJson, Copy, File } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { jsPDF } from "jspdf";
 
 interface Message {
   role: "user" | "assistant";
@@ -83,7 +84,7 @@ export function ExportChat({ messages, conversationTitle = "chat" }: ExportChatP
     }
   };
 
-  const handleExport = (format: "md" | "json" | "txt") => {
+  const handleExport = (format: "md" | "json" | "txt" | "pdf") => {
     const safeTitle = conversationTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase();
     
     switch (format) {
@@ -96,7 +97,47 @@ export function ExportChat({ messages, conversationTitle = "chat" }: ExportChatP
       case "txt":
         downloadFile(formatAsText(), `${safeTitle}.txt`, "text/plain");
         break;
+      case "pdf":
+        exportAsPdf(safeTitle);
+        break;
     }
+  };
+
+  const exportAsPdf = (safeTitle: string) => {
+    const doc = new jsPDF();
+    let yPos = 20;
+    
+    doc.setFontSize(16);
+    doc.text(conversationTitle, 10, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Exported: ${new Date().toLocaleDateString()}`, 10, yPos);
+    yPos += 15;
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    
+    messages.forEach((msg) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      const role = msg.role === "user" ? "You:" : "Know Deep:";
+      doc.setFont("helvetica", "bold");
+      doc.text(role, 10, yPos);
+      yPos += 6;
+      
+      doc.setFont("helvetica", "normal");
+      const textLines = doc.splitTextToSize(msg.content, 180);
+      doc.text(textLines, 10, yPos);
+      yPos += (textLines.length * 6) + 10;
+    });
+    
+    doc.save(`${safeTitle}.pdf`);
+    toast({ title: "Exported successfully", description: `Saved as ${safeTitle}.pdf` });
   };
 
   if (messages.length === 0) return null;
@@ -110,6 +151,10 @@ export function ExportChat({ messages, conversationTitle = "chat" }: ExportChatP
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleExport("pdf")}>
+          <File className="w-4 h-4 mr-2" />
+          Export as PDF
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleExport("md")}>
           <FileText className="w-4 h-4 mr-2" />
           Export as Markdown

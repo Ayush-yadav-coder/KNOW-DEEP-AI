@@ -129,7 +129,9 @@ export default function SharedConversation() {
                   </div>
                 )}
                 <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                  message.role === "user" 
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-slate-800 shadow-sm" 
+                    : "bg-muted"
                 }`}>
                   {message.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">

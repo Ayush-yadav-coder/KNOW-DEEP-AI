@@ -24,6 +24,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardOverviewSkeleton } from "@/components/DashboardSkeletons";
 
 interface UsageStats {
   totalMessages: number;
@@ -188,12 +189,8 @@ export default function Dashboard() {
   if (authLoading || loading) {
     return (
       <AppLayout title="Dashboard">
-        <div className="flex items-center justify-center h-[60vh]">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
-          />
+        <div className="max-w-7xl mx-auto p-4 md:p-6">
+          <DashboardOverviewSkeleton />
         </div>
       </AppLayout>
     );

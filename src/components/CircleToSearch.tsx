@@ -35,9 +35,10 @@ interface CircleToSearchProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   enabled: boolean;
   onFollowUp?: (q: string) => void;
+  onClose?: () => void;
 }
 
-export default function CircleToSearch({ videoRef, enabled, onFollowUp }: CircleToSearchProps) {
+export default function CircleToSearch({ videoRef, enabled, onFollowUp, onClose }: CircleToSearchProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointsRef = useRef<Point[]>([]);
   const drawingRef = useRef(false);
@@ -222,11 +223,30 @@ export default function CircleToSearch({ videoRef, enabled, onFollowUp }: Circle
     try {
       const locale = (typeof navigator !== "undefined" && navigator.language) || "en-US";
       const tz = (typeof Intl !== "undefined" && Intl.DateTimeFormat().resolvedOptions().timeZone) || "";
-      const { data, error } = await supabase.functions.invoke("circle-to-search", {
-        body: { image: dataUrl, locale, timezone: tz },
-      });
-      if (error) throw error;
-      setResult(data as AnalysisResult);
+
+      let analysisResult: AnalysisResult | null = null;
+      try {
+        const response = await fetch("/api/circle-to-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: dataUrl, locale, timezone: tz }),
+        });
+        if (response.ok) {
+          analysisResult = await response.json();
+        }
+      } catch (apiErr) {
+        console.warn("Express /api/circle-to-search fallback to Supabase:", apiErr);
+      }
+
+      if (!analysisResult) {
+        const { data, error } = await supabase.functions.invoke("circle-to-search", {
+          body: { image: dataUrl, locale, timezone: tz },
+        });
+        if (error) throw error;
+        analysisResult = data as AnalysisResult;
+      }
+
+      setResult(analysisResult);
     } catch (err) {
       console.error(err);
       toast({
@@ -268,15 +288,27 @@ export default function CircleToSearch({ videoRef, enabled, onFollowUp }: Circle
         style={{ cursor: "crosshair", touchAction: "none" }}
       />
 
-      {/* Hint */}
+      {/* Hint & Close Overlay */}
       {!frozenFrame && !hasPoints && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-cyan-400/40 text-white text-xs"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2"
         >
-          <Sparkles className="inline w-3 h-3 mr-1 text-cyan-300" />
-          Draw a circle around anything to analyze
+          <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-cyan-400/50 text-white text-xs shadow-lg flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
+            <span>Draw a circle around anything to search</span>
+          </div>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-black/70 backdrop-blur-md border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs shadow-lg transition-colors"
+              title="Close Circle to Search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </motion.div>
       )}
 

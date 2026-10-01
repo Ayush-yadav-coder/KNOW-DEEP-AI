@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
-import { Zap, ChevronDown, Image as ImageIcon, User, Settings, Crown, LogOut } from "lucide-react";
+import { Zap, ChevronDown, Image as ImageIcon, FolderOpen, User, Settings, Crown, LogOut, Search } from "lucide-react";
 import { Button } from "./ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { modKey } from "./KeyboardShortcuts";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   DropdownMenu,
@@ -81,9 +82,9 @@ export const Header = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           {user && (
-            <Link to="/gallery" className="text-muted-foreground hover:text-foreground transition-colors text-sm flex items-center gap-1">
-              <ImageIcon className="w-4 h-4" />
-              Gallery
+            <Link to="/my-stuff" className="text-muted-foreground hover:text-foreground transition-colors text-sm flex items-center gap-1.5">
+              <FolderOpen className="w-4 h-4 text-purple-500" />
+              My Stuff
             </Link>
           )}
           <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
@@ -92,6 +93,20 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Quick Action Search Button */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("knowdeep_open_search"))}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50 text-xs font-medium transition-all shadow-2xs hover:border-cyan-500/40 cursor-pointer"
+            title={`Search & Quick Actions (${modKey}+K)`}
+          >
+            <Search className="w-3.5 h-3.5 text-cyan-500" />
+            <span className="hidden sm:inline">Search</span>
+            <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">
+              {modKey}K
+            </kbd>
+          </button>
+
           <LanguageSwitcher />
           <ThemeToggle />
           {user ? (
@@ -113,7 +128,7 @@ export const Header = () => {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
+                  <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
                     <User className="w-4 h-4" />
                     Profile
                   </Link>

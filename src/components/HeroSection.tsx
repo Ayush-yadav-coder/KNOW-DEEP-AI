@@ -4,9 +4,31 @@ import { Button } from "./ui/button";
 import { AIOrb } from "./AIOrb";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppStore } from "@/store/useAppStore";
+
 export const HeroSection = () => {
   const { user } = useAuth();
+  const { preferences } = useAppStore();
   const navigate = useNavigate();
+
+  const dedicatedName =
+    typeof window !== "undefined"
+      ? localStorage.getItem("knowdeep_display_name") ||
+        localStorage.getItem("knowdeep_user_name")
+      : "";
+  const authName =
+    user?.user_metadata?.display_name ||
+    user?.user_metadata?.name ||
+    user?.user_metadata?.full_name;
+  const knownName =
+    dedicatedName && dedicatedName.toLowerCase() !== "explorer"
+      ? dedicatedName
+      : authName && authName.toLowerCase() !== "explorer"
+      ? authName
+      : preferences?.displayName &&
+        preferences.displayName.toLowerCase() !== "explorer"
+      ? preferences.displayName
+      : dedicatedName || "";
 
   const handleExplore = () => {
     if (user) {
@@ -47,14 +69,7 @@ export const HeroSection = () => {
               <span className="text-sm text-muted-foreground">Next-Gen AI Platform</span>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              className="flex items-center gap-3 justify-center lg:justify-start mb-4"
-            >
-              <span className="text-2xl font-bold gradient-text">Welcome to Know Deep</span>
-            </motion.div>
+
 
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
@@ -62,18 +77,18 @@ export const HeroSection = () => {
               transition={{ delay: 0.3 }}
               className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
             >
-              <span className="text-foreground">One AI to</span>
+              <span className="text-foreground">One Unified AI for</span>
               <br />
-              <span className="bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 bg-clip-text text-transparent">Rule Them All</span>
+              <span className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 bg-clip-text text-transparent">Your Entire Workspace</span>
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-lg md:text-xl text-muted-foreground mb-8 max-w-lg mx-auto lg:mx-0"
+              className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 font-normal leading-relaxed"
             >
-              Know Deep combines the power of ChatGPT, Gemini, Perplexity, Copilot, and more into one seamless, intelligent experience.
+              Know Deep combines the power of multimodal intelligence, neural deep research, full-stack code execution, and document synthesis into one seamless, intelligent workspace experience.
             </motion.p>
 
             <motion.div
@@ -124,6 +139,44 @@ export const HeroSection = () => {
                   Login / Sign Up
                 </Button>
               )}
+            </motion.div>
+
+            {/* Interactive High-Impact Workspace Prompt Launcher */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="mt-8 pt-6 border-t border-slate-200/60 dark:border-border/40"
+            >
+              <div className="flex items-center gap-2 mb-3 justify-center lg:justify-start">
+                <Sparkles className="w-4 h-4 text-cyan-500 animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Try High-Impact Workspace Prompts:
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                {[
+                  { label: "📊 Document Analysis & Summary", prompt: "Summarize this document with key executive takeaways, action items, and data tables." },
+                  { label: "💻 Full-Stack Code Generation", prompt: "Write a complete, responsive React & Tailwind dashboard with TypeScript state management." },
+                  { label: "🔎 Multi-Source Deep Web Research", prompt: "Perform deep research on current AI model architectures, benchmarking, and real-world latency." },
+                  { label: "🎨 Visual Asset Generation", prompt: "Create a modern 3D futuristic isometric illustration for a cloud workspace platform." },
+                  { label: "🌐 Optical Text Translation", prompt: "Translate extracted text into Spanish, French, and Japanese while preserving technical formatting." },
+                  { label: "🎓 Academic Problem Solver", prompt: "Solve this complex physics calculus problem step-by-step with formulas and clear explanations." },
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      if (!user) localStorage.setItem("guest_mode", "true");
+                      navigate(`/chat?q=${encodeURIComponent(item.prompt)}`);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-muted/40 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 border border-slate-200/80 dark:border-border/60 hover:border-cyan-400 dark:hover:border-cyan-500 text-xs font-medium text-slate-700 dark:text-slate-200 transition-all shadow-2xs hover:scale-[1.02] flex items-center gap-1.5"
+                  >
+                    <span>{item.label}</span>
+                    <ArrowRight className="w-3 h-3 text-cyan-500 opacity-70" />
+                  </button>
+                ))}
+              </div>
             </motion.div>
 
 

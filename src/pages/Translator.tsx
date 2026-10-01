@@ -1,431 +1,344 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Languages,
-  ArrowLeftRight,
-  Mic,
-  MicOff,
-  Volume2,
-  Copy,
-  Check,
-  Loader2,
   Sparkles,
+  Volume2,
+  CheckCircle2,
+  Mic,
+  BookOpen,
+  Target,
+  MessageSquare,
+  BookMarked,
+  History,
+  Trash2,
+  Bookmark,
+  RotateCcw,
+  X,
   Search,
-  ChevronsUpDown,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
+import {
+  TranslatorTab,
+  TranslationHistoryItem,
+} from "@/components/translator/TranslatorTypes";
+import { TranslatorLiveView } from "@/components/translator/TranslatorLiveView";
+import { TranslatorGrammarView } from "@/components/translator/TranslatorGrammarView";
+import { TranslatorVoiceTrainerView } from "@/components/translator/TranslatorVoiceTrainerView";
+import { TranslatorDictionaryView } from "@/components/translator/TranslatorDictionaryView";
+import { TranslatorPracticeView } from "@/components/translator/TranslatorPracticeView";
+import { TranslatorConversationView } from "@/components/translator/TranslatorConversationView";
+import { TranslatorPhrasebookView } from "@/components/translator/TranslatorPhrasebookView";
+import {
+  getLanguageName,
+  getLanguageFlag,
+} from "@/components/translator/TranslatorLanguages";
 
-const languages = [
-  { code: "en", name: "English" },
-  { code: "hi", name: "Hindi" },
-  { code: "es", name: "Spanish" },
-  { code: "fr", name: "French" },
-  { code: "de", name: "German" },
-  { code: "it", name: "Italian" },
-  { code: "pt", name: "Portuguese" },
-  { code: "ru", name: "Russian" },
-  { code: "ja", name: "Japanese" },
-  { code: "ko", name: "Korean" },
-  { code: "zh", name: "Chinese" },
-  { code: "ar", name: "Arabic" },
-  { code: "bn", name: "Bengali" },
-  { code: "ta", name: "Tamil" },
-  { code: "te", name: "Telugu" },
-  { code: "mr", name: "Marathi" },
-  { code: "gu", name: "Gujarati" },
-  { code: "kn", name: "Kannada" },
-  { code: "ml", name: "Malayalam" },
-  { code: "pa", name: "Punjabi" },
-  { code: "ur", name: "Urdu" },
-  { code: "th", name: "Thai" },
-  { code: "vi", name: "Vietnamese" },
-  { code: "id", name: "Indonesian" },
-  { code: "ms", name: "Malay" },
-  { code: "tr", name: "Turkish" },
-  { code: "pl", name: "Polish" },
-  { code: "nl", name: "Dutch" },
-  { code: "sv", name: "Swedish" },
-  { code: "no", name: "Norwegian" },
-  { code: "da", name: "Danish" },
-  { code: "fi", name: "Finnish" },
-  { code: "cs", name: "Czech" },
-  { code: "el", name: "Greek" },
-  { code: "he", name: "Hebrew" },
-  { code: "ro", name: "Romanian" },
-  { code: "hu", name: "Hungarian" },
-  { code: "uk", name: "Ukrainian" },
-  { code: "fa", name: "Persian" },
-  { code: "sw", name: "Swahili" },
-  { code: "af", name: "Afrikaans" },
-  { code: "sq", name: "Albanian" },
-  { code: "am", name: "Amharic" },
-  { code: "hy", name: "Armenian" },
-  { code: "az", name: "Azerbaijani" },
-  { code: "eu", name: "Basque" },
-  { code: "be", name: "Belarusian" },
-  { code: "bs", name: "Bosnian" },
-  { code: "bg", name: "Bulgarian" },
-  { code: "my", name: "Burmese" },
-  { code: "ca", name: "Catalan" },
-  { code: "ceb", name: "Cebuano" },
-  { code: "ny", name: "Chichewa" },
-  { code: "co", name: "Corsican" },
-  { code: "hr", name: "Croatian" },
-  { code: "eo", name: "Esperanto" },
-  { code: "et", name: "Estonian" },
-  { code: "tl", name: "Filipino" },
-  { code: "fy", name: "Frisian" },
-  { code: "gl", name: "Galician" },
-  { code: "ka", name: "Georgian" },
-  { code: "ht", name: "Haitian Creole" },
-  { code: "ha", name: "Hausa" },
-  { code: "haw", name: "Hawaiian" },
-  { code: "hmn", name: "Hmong" },
-  { code: "is", name: "Icelandic" },
-  { code: "ig", name: "Igbo" },
-  { code: "ga", name: "Irish" },
-  { code: "jw", name: "Javanese" },
-  { code: "kk", name: "Kazakh" },
-  { code: "km", name: "Khmer" },
-  { code: "rw", name: "Kinyarwanda" },
-  { code: "ku", name: "Kurdish" },
-  { code: "ky", name: "Kyrgyz" },
-  { code: "lo", name: "Lao" },
-  { code: "la", name: "Latin" },
-  { code: "lv", name: "Latvian" },
-  { code: "lt", name: "Lithuanian" },
-  { code: "lb", name: "Luxembourgish" },
-  { code: "mk", name: "Macedonian" },
-  { code: "mg", name: "Malagasy" },
-  { code: "mt", name: "Maltese" },
-  { code: "mi", name: "Maori" },
-  { code: "mn", name: "Mongolian" },
-  { code: "ne", name: "Nepali" },
-  { code: "or", name: "Odia" },
-  { code: "ps", name: "Pashto" },
-  { code: "sm", name: "Samoan" },
-  { code: "gd", name: "Scottish Gaelic" },
-  { code: "sr", name: "Serbian" },
-  { code: "st", name: "Sesotho" },
-  { code: "sn", name: "Shona" },
-  { code: "sd", name: "Sindhi" },
-  { code: "si", name: "Sinhala" },
-  { code: "sk", name: "Slovak" },
-  { code: "sl", name: "Slovenian" },
-  { code: "so", name: "Somali" },
-  { code: "su", name: "Sundanese" },
-  { code: "tg", name: "Tajik" },
-  { code: "tt", name: "Tatar" },
-  { code: "tk", name: "Turkmen" },
-  { code: "ug", name: "Uyghur" },
-  { code: "uz", name: "Uzbek" },
-  { code: "cy", name: "Welsh" },
-  { code: "xh", name: "Xhosa" },
-  { code: "yi", name: "Yiddish" },
-  { code: "yo", name: "Yoruba" },
-  { code: "zu", name: "Zulu" },
+const TABS: { id: TranslatorTab; label: string; icon: React.ElementType; badge?: string }[] = [
+  { id: "translate", label: "Translate", icon: Languages },
+  { id: "grammar", label: "Grammar & Tone", icon: CheckCircle2 },
+  { id: "voice-trainer", label: "Voice Trainer", icon: Mic, badge: "AI Speech" },
+  { id: "dictionary", label: "Dictionary", icon: BookOpen },
+  { id: "practice", label: "Grammar Practice", icon: Target, badge: "Quizzes" },
+  { id: "conversation", label: "Live Conversation", icon: MessageSquare },
+  { id: "phrasebook", label: "Phrasebook", icon: BookMarked },
 ];
 
-interface LangPickerProps {
-  value: string;
-  onChange: (code: string) => void;
-  label: string;
-}
-
-function LanguageCombobox({ value, onChange, label }: LangPickerProps) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState("");
-  const filtered = useMemo(
-    () => languages.filter((l) => l.name.toLowerCase().includes(q.toLowerCase()) || l.code.includes(q.toLowerCase())),
-    [q],
-  );
-  const selected = languages.find((l) => l.code === value);
-  return (
-    <div className="flex-1 min-w-0">
-      <label className="text-sm text-muted-foreground mb-2 block">{label}</label>
-      <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQ(""); }}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full justify-between bg-white/60 dark:bg-muted/30 border-white/40 dark:border-border/50 backdrop-blur-md rounded-lg"
-          >
-            <span className="truncate">{selected?.name ?? "Select"}</span>
-            <ChevronsUpDown className="w-4 h-4 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[260px] p-0 bg-slate-950/95 backdrop-blur-2xl border border-white/10" align="start">
-          <div className="flex items-center gap-2 p-2 border-b border-white/10">
-            <Search className="w-4 h-4 text-white/40 ml-1" />
-            <Input
-              autoFocus
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search language..."
-              className="h-8 border-0 bg-transparent text-white placeholder:text-white/40 focus-visible:ring-0"
-            />
-          </div>
-          <div className="max-h-72 overflow-y-auto py-1">
-            {filtered.length === 0 ? (
-              <p className="text-xs text-white/50 px-3 py-4 text-center">No matches.</p>
-            ) : (
-              filtered.map((l) => (
-                <button
-                  key={l.code}
-                  onClick={() => { onChange(l.code); setOpen(false); }}
-                  className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-white/5 transition-colors",
-                    l.code === value && "bg-cyan-500/10 text-cyan-200",
-                  )}
-                >
-                  <span>{l.name}</span>
-                  {l.code === value && <Check className="w-4 h-4 text-cyan-300" />}
-                </button>
-              ))
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
-
 export default function Translator() {
-  const [sourceText, setSourceText] = useState("");
-  const [translatedText, setTranslatedText] = useState("");
-  const [sourceLang, setSourceLang] = useState("en");
-  const [targetLang, setTargetLang] = useState("hi");
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [realtime, setRealtime] = useState(true);
   const { toast } = useToast();
-  const recognitionRef = useRef<any>(null);
-  const debounceRef = useRef<number | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.onresult = (event: any) => {
-        let transcript = '';
-        for (let i = 0; i < event.results.length; i++) transcript += event.results[i][0].transcript;
-        setSourceText(transcript);
-      };
-      recognitionRef.current.onerror = () => setIsListening(false);
-      recognitionRef.current.onend = () => setIsListening(false);
-    }
-    return () => recognitionRef.current?.stop();
-  }, []);
+  const [activeTab, setActiveTab] = useState<TranslatorTab>("translate");
 
-  const runTranslate = async (text: string) => {
-    if (!text.trim()) { setTranslatedText(""); return; }
-    abortRef.current?.abort();
-    abortRef.current = new AbortController();
-    setIsTranslating(true);
+  // Cross-module states
+  const [crossPhrase, setCrossPhrase] = useState<string>("");
+  const [crossLang, setCrossLang] = useState<string>("en");
+
+  // Translation History
+  const [history, setHistory] = useState<TranslationHistoryItem[]>(() => {
     try {
-      const sName = languages.find(l => l.code === sourceLang)?.name || sourceLang;
-      const tName = languages.find(l => l.code === targetLang)?.name || targetLang;
-      
-      let translated = "";
-      try {
-        const res = await fetch("/api/translate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text,
-            sourceLang: sName,
-            targetLang: tName,
-          }),
-          signal: abortRef.current.signal,
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.translatedText) {
-            translated = data.translatedText;
-            setTranslatedText(translated);
-            return;
-          }
-        }
-      } catch (err: any) {
-        if (err.name === "AbortError") return;
-        console.warn("Local translate endpoint fallback:", err);
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        signal: abortRef.current.signal,
-        body: JSON.stringify({
-          messages: [{ role: "user", content: `Translate from ${sName} to ${tName}. Respond ONLY with the translated text, nothing else:\n\n${text}` }],
-        }),
-      });
-      if (!response.ok) throw new Error("Translation failed");
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
-      const decoder = new TextDecoder();
-      let result = "";
-      setTranslatedText("");
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
-          if (line.startsWith("data: ") && line !== "data: [DONE]") {
-            try {
-              const json = JSON.parse(line.slice(6));
-              const content = json.choices?.[0]?.delta?.content;
-              if (content) { result += content; setTranslatedText(result); }
-            } catch { /* ignore */ }
-          }
-        }
-      }
-    } catch (e: any) {
-      if (e.name !== "AbortError") {
-        toast({ title: "Translation Failed", description: e.message || "Try again", variant: "destructive" });
-      }
-    } finally {
-      setIsTranslating(false);
+      const stored = localStorage.getItem("knowdeep_translator_history");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
     }
-  };
+  });
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
 
-  // Real-time debounced translation
+  // Persist history
   useEffect(() => {
-    if (!realtime) return;
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => runTranslate(sourceText), 450);
-    return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sourceText, sourceLang, targetLang, realtime]);
-
-  const toggleListening = () => {
-    if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
-    else { try { recognitionRef.current?.start(); setIsListening(true); } catch { toast({ title: "Speech unsupported", variant: "destructive" }); } }
-  };
-
-  const swapLanguages = () => {
-    setSourceLang(targetLang); setTargetLang(sourceLang);
-    setSourceText(translatedText); setTranslatedText(sourceText);
-  };
-
-  const speakText = (text: string, lang: string) => {
-    if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance(text); u.lang = lang; window.speechSynthesis.speak(u);
+    try {
+      localStorage.setItem("knowdeep_translator_history", JSON.stringify(history.slice(0, 50)));
+    } catch (e) {
+      console.warn("Could not save history:", e);
     }
+  }, [history]);
+
+  const handleAddHistory = (item: Omit<TranslationHistoryItem, "id" | "timestamp">) => {
+    const newItem: TranslationHistoryItem = {
+      ...item,
+      id: `hist-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: Date.now(),
+    };
+    setHistory((prev) => [newItem, ...prev]);
   };
 
-  const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(translatedText);
-    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  const handleClearHistory = () => {
+    setHistory([]);
+    toast({ title: "History Cleared" });
   };
+
+  // Cross-linking handlers
+  const handleOpenVoiceTrainerForPhrase = (phrase: string, lang: string) => {
+    setCrossPhrase(phrase);
+    setCrossLang(lang);
+    setActiveTab("voice-trainer");
+    toast({
+      title: "Voice Trainer Activated",
+      description: `Loaded phrase in ${getLanguageName(lang)} for pronunciation training.`,
+    });
+  };
+
+  const handleOpenDictionaryForWord = (word: string, lang: string) => {
+    setCrossPhrase(word);
+    setCrossLang(lang);
+    setActiveTab("dictionary");
+  };
+
+  const filteredHistory = history.filter(
+    (h) =>
+      h.sourceText.toLowerCase().includes(historySearch.toLowerCase()) ||
+      h.translatedText.toLowerCase().includes(historySearch.toLowerCase())
+  );
 
   return (
-    <AppLayout title="Translator">
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50 to-white dark:from-background dark:via-background dark:to-background" />
-        <div className="absolute top-20 left-10 w-96 h-96 bg-red-400/30 dark:bg-red-500/10 rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute top-40 right-20 w-80 h-80 bg-yellow-400/30 dark:bg-yellow-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: "1s" }} />
-        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-blue-400/30 dark:bg-blue-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: "2s" }} />
-      </div>
+    <AppLayout>
+      <div className="min-h-[calc(100vh-3.5rem)] pt-16 pb-12 px-3 sm:px-6 lg:px-8 bg-background relative selection:bg-primary/20">
+        {/* Background ambient lighting */}
+        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[140px]" />
+          <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[140px]" />
+        </div>
 
-      <div className="min-h-screen p-4 md:p-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-5xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-muted/30 backdrop-blur-xl border border-white/40 dark:border-border/50 mb-4">
-              <Languages className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Real-time Translator</span>
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Main Top Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border/50">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                  <Languages className="w-5 h-5" />
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                    <span>Translator</span>
+                  </h1>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Universal AI Multilingual Translator, Grammar Studio, Voice Pronunciation Trainer & Lexicon
+                  </p>
+                </div>
+              </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              <span className="bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 bg-clip-text text-transparent">
-                Translate As You Type
-              </span>
-            </h1>
-            <p className="text-muted-foreground">110+ languages • Live translation • Voice in & out</p>
+
+            {/* History Trigger */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsHistoryOpen(true)}
+                className="h-9 gap-1.5 text-xs font-semibold rounded-xl border-border/80 hover:bg-muted/80"
+              >
+                <History className="w-4 h-4 text-primary" />
+                <span>History ({history.length})</span>
+              </Button>
+            </div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
-            className="rounded-3xl p-6 bg-white/50 dark:bg-muted/20 backdrop-blur-xl border border-white/40 dark:border-border/50 shadow-xl"
-          >
-            <div className="flex items-end gap-3 mb-6">
-              <LanguageCombobox value={sourceLang} onChange={setSourceLang} label="From" />
-              <Button variant="ghost" size="icon" onClick={swapLanguages} className="rounded-full bg-white/60 dark:bg-muted/30 border border-white/40 dark:border-border/50 mb-0.5">
-                <ArrowLeftRight className="w-4 h-4" />
-              </Button>
-              <LanguageCombobox value={targetLang} onChange={setTargetLang} label="To" />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 mb-3 text-xs">
-              <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground">
-                <input type="checkbox" checked={realtime} onChange={(e) => setRealtime(e.target.checked)} className="rounded" />
-                Translate as I type
-              </label>
-              {isTranslating && <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-500" />}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="relative">
-                <Textarea
-                  value={sourceText}
-                  onChange={(e) => setSourceText(e.target.value)}
-                  placeholder="Type to translate instantly..."
-                  className="min-h-[220px] resize-none bg-white/60 dark:bg-muted/30 border-white/40 dark:border-border/50 backdrop-blur-md text-base"
-                />
-                <div className="absolute bottom-3 left-3 flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={toggleListening} className={`h-8 w-8 rounded-full ${isListening ? 'bg-red-500 text-white' : 'bg-white/60 dark:bg-muted/30'}`}>
-                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => speakText(sourceText, sourceLang)} className="h-8 w-8 rounded-full bg-white/60 dark:bg-muted/30" disabled={!sourceText}>
-                    <Volume2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="relative">
-                <Textarea
-                  value={translatedText}
-                  readOnly
-                  placeholder="Translation appears here..."
-                  className="min-h-[220px] resize-none bg-white/60 dark:bg-muted/30 border-white/40 dark:border-border/50 backdrop-blur-md text-base"
-                />
-                <div className="absolute bottom-3 right-3 flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => speakText(translatedText, targetLang)} className="h-8 w-8 rounded-full bg-white/60 dark:bg-muted/30" disabled={!translatedText}>
-                    <Volume2 className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={copyToClipboard} className="h-8 w-8 rounded-full bg-white/60 dark:bg-muted/30" disabled={!translatedText}>
-                    {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {!realtime && (
-              <div className="mt-6 flex justify-center">
-                <Button
-                  onClick={() => runTranslate(sourceText)}
-                  disabled={isTranslating || !sourceText.trim()}
-                  className="px-8 py-3 bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 text-white font-semibold rounded-xl hover:opacity-90"
+          {/* Clean Segmented Navigation Tabs (Anti-Slop Zero-Pill Compliant) */}
+          <div className="flex items-center gap-1.5 p-1.5 bg-card/80 border border-border/70 rounded-2xl overflow-x-auto shadow-xs backdrop-blur-md">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  }`}
                 >
-                  {isTranslating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Translating...</> : <><Sparkles className="w-4 h-4 mr-2" />Translate</>}
-                </Button>
-              </div>
-            )}
-          </motion.div>
-        </motion.div>
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  {tab.badge && !isActive && (
+                    <span className="text-[10px] px-1.5 py-0.2 bg-primary/10 text-primary rounded-md font-bold">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ACTIVE TAB CONTENT */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+            >
+              {activeTab === "translate" && (
+                <TranslatorLiveView
+                  onAddHistory={handleAddHistory}
+                  onOpenDictionaryForWord={handleOpenDictionaryForWord}
+                  onOpenVoiceTrainerForPhrase={handleOpenVoiceTrainerForPhrase}
+                />
+              )}
+
+              {activeTab === "grammar" && (
+                <TranslatorGrammarView
+                  initialText={crossPhrase}
+                  onOpenVoiceTrainer={handleOpenVoiceTrainerForPhrase}
+                />
+              )}
+
+              {activeTab === "voice-trainer" && (
+                <TranslatorVoiceTrainerView
+                  initialPhrase={crossPhrase}
+                  initialLang={crossLang}
+                />
+              )}
+
+              {activeTab === "dictionary" && (
+                <TranslatorDictionaryView
+                  initialWord={crossPhrase}
+                  initialLang={crossLang}
+                  onOpenVoiceTrainer={handleOpenVoiceTrainerForPhrase}
+                />
+              )}
+
+              {activeTab === "practice" && (
+                <TranslatorPracticeView initialLang={crossLang} />
+              )}
+
+              {activeTab === "conversation" && (
+                <TranslatorConversationView
+                  initialLangA="en"
+                  initialLangB={crossLang === "en" ? "es" : crossLang}
+                />
+              )}
+
+              {activeTab === "phrasebook" && <TranslatorPhrasebookView />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Translation History Drawer */}
+        <AnimatePresence>
+          {isHistoryOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex justify-end"
+              onClick={() => setIsHistoryOpen(false)}
+            >
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 280 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md bg-card border-l border-border h-full shadow-2xl p-6 flex flex-col justify-between space-y-4"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-border/50 pb-3">
+                    <div className="flex items-center gap-2">
+                      <History className="w-5 h-5 text-primary" />
+                      <h3 className="text-base font-bold text-foreground">Translation History</h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsHistoryOpen(false)}
+                      className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Search History */}
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search history..."
+                      value={historySearch}
+                      onChange={(e) => setHistorySearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 text-xs bg-muted/60 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  {/* History List */}
+                  <div className="max-h-[calc(100vh-220px)] overflow-y-auto space-y-2.5 pr-1">
+                    {filteredHistory.length === 0 ? (
+                      <div className="p-8 text-center text-muted-foreground text-xs italic">
+                        No translation history found.
+                      </div>
+                    ) : (
+                      filteredHistory.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-3.5 rounded-2xl bg-muted/30 border border-border/60 hover:border-primary/40 transition-all space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
+                            <span>
+                              {getLanguageFlag(item.sourceLang)} {getLanguageName(item.sourceLang)} →{" "}
+                              {getLanguageFlag(item.targetLang)} {getLanguageName(item.targetLang)}
+                            </span>
+                            <span className="font-normal opacity-70">
+                              {new Date(item.timestamp).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-foreground/80 line-clamp-2">
+                            "{item.sourceText}"
+                          </p>
+                          <p className="text-xs font-semibold text-primary line-clamp-2">
+                            {item.translatedText}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {history.length > 0 && (
+                  <div className="pt-3 border-t border-border/40">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearHistory}
+                      className="w-full h-9 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 border-rose-500/30 gap-1.5"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Clear All History</span>
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </AppLayout>
   );

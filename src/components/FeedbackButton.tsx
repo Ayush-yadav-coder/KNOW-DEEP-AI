@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
+import { queueOfflineAction } from "@/lib/offlineSync";
 import { z } from "zod";
 
 // Validation schema for feedback
@@ -56,6 +57,33 @@ export function FeedbackButton() {
       const sanitizedMessage = message.trim().slice(0, 2000);
       const sanitizedEmail = email ? email.trim().slice(0, 255) : null;
 
+      if (!navigator.onLine) {
+        queueOfflineAction({
+          type: "SUBMIT_FEEDBACK",
+          payload: {
+            user_id: user?.id || null,
+            email: sanitizedEmail || user?.email || null,
+            message: sanitizedMessage,
+            page: location.pathname.slice(0, 255),
+          },
+          metadata: {
+            title: "User Feedback",
+            summary: sanitizedMessage.slice(0, 60),
+          },
+        });
+
+        toast({
+          title: "Feedback Stored in LocalStorage",
+          description: "You're offline. Your feedback will automatically push once you reconnect.",
+        });
+
+        setMessage("");
+        setEmail("");
+        setIsOpen(false);
+        setIsSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase.from("feedback").insert({
         user_id: user?.id || null,
         email: sanitizedEmail || user?.email || null,
@@ -74,13 +102,29 @@ export function FeedbackButton() {
       setEmail("");
       setIsOpen(false);
     } catch (error) {
-      // Log error server-side only, don't expose details to user
-      console.error("Error submitting feedback:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send feedback. Please try again.",
-        variant: "destructive",
+      console.warn("Error submitting feedback, queueing offline:", error);
+      queueOfflineAction({
+        type: "SUBMIT_FEEDBACK",
+        payload: {
+          user_id: user?.id || null,
+          email: (email ? email.trim().slice(0, 255) : null) || user?.email || null,
+          message: message.trim().slice(0, 2000),
+          page: location.pathname.slice(0, 255),
+        },
+        metadata: {
+          title: "User Feedback",
+          summary: message.trim().slice(0, 60),
+        },
       });
+
+      toast({
+        title: "Saved in LocalStorage",
+        description: "Your feedback is queued and will automatically sync to the backend once reconnected.",
+      });
+
+      setMessage("");
+      setEmail("");
+      setIsOpen(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +136,7 @@ export function FeedbackButton() {
         <Button
           variant="outline"
           size="sm"
-          className="fixed bottom-4 right-4 z-50 rounded-full shadow-lg gap-2"
+          className="fixed bottom-28 right-4 z-40 rounded-full shadow-lg gap-2 hidden lg:flex bg-background/90 backdrop-blur border border-border/80 hover:bg-muted"
         >
           <MessageSquare className="w-4 h-4" />
           Feedback

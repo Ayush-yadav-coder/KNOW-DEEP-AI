@@ -24,7 +24,8 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
       abortControllerRef.current.abort();
     }
     
-    abortControllerRef.current = new AbortController();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setIsStreaming(true);
     
     let fullContent = "";
@@ -36,9 +37,12 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages }),
-          signal: abortControllerRef.current.signal,
+          signal: controller?.signal,
         });
       } catch (localErr) {
+        if (controller?.signal?.aborted || (localErr as Error)?.name === "AbortError") {
+          throw localErr;
+        }
         const { data: { session } } = await supabase.auth.getSession();
         response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stream-chat`, {
           method: "POST",
@@ -48,7 +52,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({ messages }),
-          signal: abortControllerRef.current.signal,
+          signal: controller?.signal,
         });
       }
 

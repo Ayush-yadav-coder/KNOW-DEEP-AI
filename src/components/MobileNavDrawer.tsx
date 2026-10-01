@@ -32,21 +32,21 @@ const sidebarItems = [
   { icon: Home, label: "Home", href: "/" },
   { icon: Zap, label: "My Activity", href: "/dashboard" },
   { icon: GraduationCap, label: "Academic Assistant", href: "/learning-hub" },
-  { icon: FolderOpen, label: "My Creations", href: "/gallery" },
+  { icon: FolderOpen, label: "My Stuff", href: "/my-stuff" },
   { icon: Layers, label: "My Generated Apps", href: "/my-apps" },
-  { icon: User, label: "Profile", href: "/profile" },
+  { icon: User, label: "Profile", href: "/settings" },
   { icon: Settings, label: "Settings", href: "/settings" },
   { icon: Crown, label: "Pricing", href: "/pricing" },
-  { icon: ExternalLink, label: "API Platform", href: "https://know-deep-api-platform.lovable.app", external: true },
+  { icon: ExternalLink, label: "Connectors & APIs", href: "/connected-apps" },
 ];
 
 const knowDeepSuiteItems = [
-  { icon: Code2, label: "Know Deep's Coding Assistant", href: "https://know-deep-coding-assistant.lovable.app", color: "text-cyan-500" },
-  { icon: Calculator, label: "Smart Calculator", href: "https://know-deep-pro-smart-calculator.lovable.app", color: "text-blue-500" },
-  { icon: Calendar, label: "Smart Calendar", href: "https://know-deep-calander.lovable.app/", color: "text-emerald-500" },
-  { icon: StickyNote, label: "Smart Notes", href: "https://know-deep-pro-smart-notes.lovable.app/", color: "text-amber-500" },
-  { icon: Brain, label: "Concept Trainer", href: "https://concept-trainer.lovable.app", color: "text-purple-500" },
-  { icon: Presentation, label: "Smart Whiteboard", href: "https://know-deep-whiteboard.lovable.app", color: "text-rose-500" },
+  { icon: Code2, label: "Know Deep's Coding Assistant", href: "/code-studio", color: "text-cyan-500" },
+  { icon: Calculator, label: "Smart Calculator & Tutor", href: "/learning-hub", color: "text-blue-500" },
+  { icon: Calendar, label: "Smart Calendar & Activity", href: "/dashboard", color: "text-emerald-500" },
+  { icon: StickyNote, label: "Smart Notes & Studio", href: "/document-studio", color: "text-amber-500" },
+  { icon: Brain, label: "Concept Trainer & X-Ray", href: "/concept-xray", color: "text-purple-500" },
+  { icon: Presentation, label: "Smart Whiteboard & Slides", href: "/presentation-studio", color: "text-rose-500" },
 ];
 
 
@@ -90,24 +90,6 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
               <div className="space-y-1 mb-6">
                 {sidebarItems.map((item) => {
                   const isActive = location.pathname === item.href;
-                  const isExternal = (item as any).external;
-
-                  if (isExternal) {
-                    return (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={onClose}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50 group"
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="text-sm font-medium flex-1">{item.label}</span>
-                        <ExternalLink className="w-3 h-3 opacity-50 group-hover:opacity-100" />
-                      </a>
-                    );
-                  }
 
                   return (
                     <Link
@@ -117,7 +99,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all",
                         isActive
-                          ? "bg-primary/20 text-primary"
+                          ? "bg-primary/20 text-primary font-semibold"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       )}
                     >
@@ -138,20 +120,25 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                 </div>
 
                 <div className="space-y-1">
-                  {knowDeepSuiteItems.map((item) => (
-                    <a
-                      key={item.href}
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={onClose}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all group"
-                    >
-                      <item.icon className={cn("w-5 h-5", item.color)} />
-                      <span className="text-sm font-medium flex-1">{item.label}</span>
-                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </a>
-                  ))}
+                  {knowDeepSuiteItems.map((item) => {
+                    const isActive = location.pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        onClick={onClose}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
+                          isActive
+                            ? "bg-primary/20 text-primary font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                      >
+                        <item.icon className={cn("w-5 h-5", item.color)} />
+                        <span className="text-sm font-medium flex-1">{item.label}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             </nav>

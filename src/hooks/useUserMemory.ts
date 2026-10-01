@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { queueOfflineAction } from "@/lib/offlineSync";
 import { toast } from "sonner";
 
 export type MemoryCategory = "identity" | "preferences" | "active_projects" | "learning_style" | "other";
@@ -51,12 +52,29 @@ export function useUserMemory() {
       if (!text) return;
       // De-dup
       if (items.some((i) => i.fact_text.toLowerCase() === text.toLowerCase())) return;
+
+      if (!navigator.onLine) {
+        queueOfflineAction({
+          type: "USER_MEMORY_ADD",
+          payload: { user_id: user.id, category, fact_text: text, importance_weight },
+          metadata: { summary: text, title: "Memory Addition" },
+        });
+        toast.success("Memory saved offline in LocalStorage.");
+        return;
+      }
+
       const { error } = await supabase
         .from("user_memory")
         .insert({ user_id: user.id, category, fact_text: text, importance_weight });
       if (!error) {
         toast.success("Memory updated.");
         refresh();
+      } else {
+        queueOfflineAction({
+          type: "USER_MEMORY_ADD",
+          payload: { user_id: user.id, category, fact_text: text, importance_weight },
+          metadata: { summary: text, title: "Memory Addition" },
+        });
       }
     },
     [user, items, refresh],
@@ -64,6 +82,16 @@ export function useUserMemory() {
 
   const deleteFact = useCallback(
     async (id: string) => {
+      if (!navigator.onLine) {
+        queueOfflineAction({
+          type: "USER_MEMORY_DELETE",
+          payload: { id },
+          metadata: { summary: `Memory ID: ${id}`, title: "Delete Memory" },
+        });
+        toast.success("Delete action stored offline.");
+        setItems((prev) => prev.filter((i) => i.id !== id));
+        return;
+      }
       await supabase.from("user_memory").delete().eq("id", id);
       refresh();
     },

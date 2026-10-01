@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { Send, Sparkles, User } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import { detectUserIntent } from "@/lib/intentDispatcher";
 
 const sampleMessages = [
   { role: "user", content: "Explain quantum computing in simple terms" },
@@ -10,6 +12,18 @@ const sampleMessages = [
 
 export const ChatPreview = () => {
   const [inputValue, setInputValue] = useState("");
+  const navigate = useNavigate();
+
+  const handleStartChat = () => {
+    const query = inputValue.trim();
+    if (!query) return;
+    const match = detectUserIntent(query);
+    if (match.intent !== "general_chat" && match.confidence >= 0.88) {
+      navigate(match.targetRoute);
+    } else {
+      navigate(`/chat?q=${encodeURIComponent(query)}`);
+    }
+  };
 
   return (
     <motion.div
@@ -43,7 +57,7 @@ export const ChatPreview = () => {
             <div
               className={`rounded-2xl px-4 py-3 max-w-md ${
                 msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-slate-800 shadow-sm"
                   : "bg-muted text-foreground"
               }`}
             >
@@ -63,10 +77,20 @@ export const ChatPreview = () => {
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleStartChat();
+            }
+          }}
           placeholder="Ask Deep anything..."
           className="flex-1 bg-muted rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
         />
-        <Button variant="hero" size="icon" className="rounded-xl w-12 h-12">
+        <Button 
+          variant="hero" 
+          size="icon" 
+          className="rounded-xl w-12 h-12"
+          onClick={handleStartChat}
+        >
           <Send className="w-5 h-5" />
         </Button>
       </div>

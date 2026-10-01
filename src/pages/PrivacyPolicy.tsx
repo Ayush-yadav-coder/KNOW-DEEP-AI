@@ -5,40 +5,52 @@ import { useNavigate } from "react-router-dom";
 
 const sections = [
   {
-    title: "1. Information We Collect",
-    body: `We collect information that you provide directly to us, as well as information automatically generated during your sessions:
+    title: "1. Scope, Purpose, and Governing Intent",
+    body: `This Privacy Policy governs the collection, processing, storage, and protection of user data across the Know Deep AI platform. This policy applies to all registered members, visitors, and programmatic consumers accessing the Know Deep application via web, mobile, or integrated client interface.
 
-• Account Data: When you sign up or log in, we collect your authentication data (such as email and name) via our authentication providers (e.g., Supabase Auth).
-• Media and Vision Data: When using our "Live Mode" or "Circle-to-Search" features, we temporarily process your active device camera feed and image crops to deliver real-time visual analysis, object tracking, and OCR translation text.
-• Persistent Memory and Context: If enabled, our background context engine automatically extracts and organizes personal preferences or technical project details you share to save them securely inside our database table (user_memory) for session continuity.
-• Location Data: We check temporary IP location headers strictly to deliver localized services, such as converting global product prices directly into Indian Rupees (₹) for relevant regions.`,
+By creating an account, sending prompts, or interacting with the Know Deep interface, you acknowledge that you have read, understood, and agreed to the data processing practices described in this document.`,
   },
   {
-    title: "2. How We Use Your Information",
-    body: `We use the gathered information to operate, maintain, and optimize our feature pillars:
+    title: "2. Information Categories We Collect",
+    body: `To provide real-time AI responses, manage user sessions, and maintain platform stability, Know Deep collects the following specific types of data:
 
-• To personalize your AI chatting experience using long-term memory profiles.
-• To run visual and object calculations for the live camera tools.
-• To render e-commerce pricing tables and direct purchasing hyperlinks.
-• To debug code anomalies inside our App Builder sandboxes.
+A. Directly Provided User Data
+Account Registration Identifiers: Full name, selected username, email address, and hashed authentication credentials created upon registration.
 
-We do not sell, rent, or trade your personal data, media data, or memory logs to third-party advertising networks.`,
+Prompt Inputs and Context: Text strings, code blocks, structured instructions, uploaded documents, and files submitted to the Know Deep chat interface.
+
+Saved Conversations: Transcripts of user-AI interactions preserved under user profiles for session continuation.
+
+B. Automatically Collected Technical Identifiers
+System Diagnostics: Internet Protocol (IP) addresses, user-agent browser strings, device type, operating system version, and system language settings.
+
+Usage Logs: Page request timestamps, button click streams, response latency metrics, API response codes, and session duration data.
+
+Local Storage and Authentication Tokens: Secure browser tokens (such as JSON Web Tokens or Local Storage key-value pairs) used to keep user accounts securely authenticated across browser refreshes.`,
   },
   {
-    title: "3. Data Storage and Security",
-    body: `Your account files, text logs, and personalized memory arrays are stored securely using industry-standard cloud infrastructure and database solutions (including Supabase). While we enforce rigorous technical firewalls and encrypted token management, no internet-based data transfer can be guaranteed 100% secure.`,
-  },
-  {
-    title: "4. Your Data Privacy Rights",
-    body: `You maintain full control over the personal details our AI memorizes:
+    title: "3. Processing Mechanics & AI Data Handling",
+    body: `Third-Party Processing: Prompts submitted to Know Deep are transmitted over encrypted TLS connections to third-party machine learning APIs for real-time text and code generation.
 
-• You can visit the "Memory Center" tab in the application Settings at any time to inspect individual facts stored by the AI.
-• You have the right to delete specific saved facts manually or click "Reset Memory" to completely erase your personalization cache.
-• You can delete your entire application user account at any time.`,
+No Selling of Personal Data: Know Deep does not sell, rent, lease, or trade personal data, prompt history, or identifying information to third-party advertisers or data brokers.
+
+Data Minimization: We only pass the text and contextual parameters necessary for generating the immediate AI response.`,
   },
   {
-    title: "5. Contact Us",
-    body: `If you have any questions or concerns regarding this Privacy Policy, please contact us at: ayushyadavprocoder@gmail.com`,
+    title: "4. Storage, Encryption, and Data Security",
+    body: `Encryption Standards: All data in transit between your local device, our Vercel-hosted frontend, and our cloud database is protected using modern HTTPS/TLS 1.3 encryption. Static database entries are encrypted at rest using AES-256 protocols.
+
+Hosting Architecture: Application UI components and frontend serverless routes are hosted on Vercel. Persistent user accounts and chat records are managed via secure cloud database endpoints.
+
+Breach Notification: In the event of a security incident affecting personal credentials, Know Deep will notify impacted users via email in accordance with applicable legal requirements.`,
+  },
+  {
+    title: "5. User Rights and Data Deletion",
+    body: `Users hold the following rights regarding their data on Know Deep:
+
+Conversation Purging: Users may delete individual chat threads or clear their complete chat history directly within the platform settings.
+
+Account Termination: Users may submit a formal request to delete their entire account, which permanently purges profile details, saved conversations, and associated database references.`,
   },
 ];
 
@@ -51,22 +63,27 @@ export default function PrivacyPolicy() {
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-          <div className="text-center mb-12">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/20">
               <Shield className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-4xl font-bold gradient-text mb-2">Privacy Policy</h1>
-            <p className="text-muted-foreground">Last updated: June 2026</p>
+            <p className="text-muted-foreground text-sm font-medium">Effective Date: September 18, 2026</p>
           </div>
 
-          <div className="glass-card rounded-2xl p-8 space-y-6">
-            <p className="text-lg text-foreground leading-relaxed">
-              Welcome to Know Deep. We value your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our web and mobile applications, including our AI text tools, live camera vision features, and cross-session personalization systems.
+          {/* Top Notice Box */}
+          <div className="p-5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 shadow-sm space-y-1.5">
+            <p className="text-sm font-semibold text-cyan-400">Effective Date: September 18, 2026</p>
+            <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">
+              Platform: Know Deep AI Application (“Know Deep,” “Platform,” “we,” “us,” or “our”)
             </p>
+          </div>
+
+          <div className="glass-card rounded-2xl p-6 sm:p-8 space-y-8 border border-border/40">
             {sections.map((s) => (
-              <section key={s.title}>
-                <h2 className="text-2xl font-bold mb-3 text-foreground">{s.title}</h2>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{s.body}</p>
+              <section key={s.title} className="space-y-3 pb-6 border-b border-border/20 last:border-b-0 last:pb-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">{s.title}</h2>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-line text-sm sm:text-base">{s.body}</p>
               </section>
             ))}
           </div>

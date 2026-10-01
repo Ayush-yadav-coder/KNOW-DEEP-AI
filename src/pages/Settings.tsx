@@ -1,6 +1,30 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Settings as SettingsIcon, User, Bell, Crown, Camera, Loader2, Check, Trash2, AlertTriangle, Brain, Sliders, ArrowRight } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  User,
+  Bell,
+  Crown,
+  Camera,
+  Loader2,
+  Check,
+  Trash2,
+  AlertTriangle,
+  Brain,
+  Sliders,
+  MessageSquarePlus,
+  ShieldCheck,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  Copy,
+  LogOut,
+  Shield,
+  Keyboard,
+  Info,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -23,12 +47,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/AppLayout";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PolicyLinks } from "@/components/PolicyLinks";
 import { CustomizeNavModal } from "@/components/CustomizeNavModal";
 import { NavDragDropCustomizer } from "@/components/NavDragDropCustomizer";
 import { PricingTiers } from "@/components/PricingTiers";
 import { useAppStore } from "@/store/useAppStore";
+import { OfflineSyncSettingsSection } from "@/components/OfflineSyncSettingsSection";
+import { evaluatePasswordStrength } from "@/lib/secureAuth";
+import { KeyboardShortcutsCheatsheetView } from "@/components/KeyboardShortcuts";
+import { AboutUsSection } from "@/components/AboutUsSection";
 
 interface Plan {
   id: string;
@@ -38,11 +66,27 @@ interface Plan {
 }
 
 export default function Settings() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updatePassword } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { preferences, updatePreferences } = useAppStore();
   
+  const initialTab = searchParams.get("tab") || "profile";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["profile", "shortcuts", "security", "navigation", "notifications", "subscription", "feedback", "about"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    setSearchParams({ tab: newTab });
+  };
+
   const [displayName, setDisplayName] = useState("");
   const [age, setAge] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -51,6 +95,8 @@ export default function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [isCustomizingNav, setIsCustomizingNav] = useState(false);
   const [showHeroPage, setShowHeroPage] = useState(
     typeof window !== "undefined" && localStorage.getItem("show_hero_page") === "true"
@@ -62,6 +108,70 @@ export default function Settings() {
     aiUpdates: true,
     newFeatures: true,
   });
+
+  // Password & Security Management State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmNewPass, setShowConfirmNewPass] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [copiedUserId, setCopiedUserId] = useState(false);
+
+  const newPasswordStrength = evaluatePasswordStrength(newPassword);
+
+  const handleCopyUserId = () => {
+    if (user?.id) {
+      navigator.clipboard.writeText(user.id);
+      setCopiedUserId(true);
+      setTimeout(() => setCopiedUserId(false), 2000);
+      toast({ title: "Account ID Copied", description: "Your unique account ID has been copied to clipboard." });
+    }
+  };
+
+  const handlePasswordChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+
+    if (!currentPassword) {
+      setPasswordError("Please enter your current password.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("New passwords do not match. Please re-enter.");
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const { error } = await updatePassword(currentPassword, newPassword);
+      if (error) {
+        setPasswordError(error.message);
+      } else {
+        setPasswordSuccess(true);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmNewPassword("");
+        toast({
+          title: "Password Updated",
+          description: "Your credentials have been securely re-hashed and updated.",
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update password.";
+      setPasswordError(message);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   const toggleShowHero = (v: boolean) => {
     setShowHeroPage(v);
@@ -188,12 +298,18 @@ export default function Settings() {
       });
 
       // 4. Save to localStorage
+      localStorage.setItem("knowdeep_display_name", displayName);
+      localStorage.setItem("knowdeep_user_name", displayName);
       localStorage.setItem(`profile_settings_${user.id}`, JSON.stringify({
         displayName,
         age,
         purpose,
         updatedAt: new Date().toISOString(),
       }));
+
+      window.dispatchEvent(
+        new CustomEvent("knowdeep_name_updated", { detail: { name: displayName } })
+      );
 
       toast({
         title: "Profile Saved",
@@ -247,6 +363,33 @@ export default function Settings() {
     }
   };
 
+  const handleSubmitFeedback = async () => {
+    setFeedbackSubmitting(true);
+    try {
+      const { error } = await supabase.from("feedback").insert({
+        user_id: user?.id || null,
+        email: user?.email || null,
+        message: feedbackMessage.trim().slice(0, 2000),
+        page: "settings_page",
+      });
+      if (error) throw error;
+      toast({
+        title: "Feedback sent!",
+        description: "Thank you for your feedback. We appreciate it!",
+      });
+      setFeedbackMessage("");
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send feedback. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
   const getPlanColor = (name: string) => {
     switch (name.toLowerCase()) {
       case "pro":
@@ -282,11 +425,19 @@ export default function Settings() {
           </p>
         </motion.div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 rounded-2xl h-auto p-1.5 gap-1.5 bg-muted/40 backdrop-blur-md">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 rounded-2xl h-auto p-1.5 gap-1.5 bg-muted/40 backdrop-blur-md">
             <TabsTrigger value="profile" className="rounded-xl py-2.5">
               <User className="w-4 h-4 mr-2" />
               Profile
+            </TabsTrigger>
+            <TabsTrigger value="shortcuts" className="rounded-xl py-2.5">
+              <Keyboard className="w-4 h-4 mr-2 text-cyan-500" />
+              Shortcuts
+            </TabsTrigger>
+            <TabsTrigger value="security" className="rounded-xl py-2.5">
+              <ShieldCheck className="w-4 h-4 mr-2 text-emerald-500" />
+              Security
             </TabsTrigger>
             <TabsTrigger value="navigation" className="rounded-xl py-2.5">
               <Sliders className="w-4 h-4 mr-2 text-cyan-500" />
@@ -300,7 +451,22 @@ export default function Settings() {
               <Crown className="w-4 h-4 mr-2 text-amber-500" />
               Premium
             </TabsTrigger>
+            <TabsTrigger value="feedback" className="rounded-xl py-2.5">
+              <MessageSquarePlus className="w-4 h-4 mr-2" />
+              Feedback
+            </TabsTrigger>
+            <TabsTrigger value="about" className="rounded-xl py-2.5">
+              <Info className="w-4 h-4 mr-2 text-purple-500" />
+              About Us
+            </TabsTrigger>
           </TabsList>
+
+          {/* Shortcuts Tab */}
+          <TabsContent value="shortcuts">
+            <Card className="glass-card rounded-2xl border-0 p-6">
+              <KeyboardShortcutsCheatsheetView />
+            </Card>
+          </TabsContent>
 
           {/* Profile Tab */}
           <TabsContent value="profile">
@@ -405,6 +571,339 @@ export default function Settings() {
                   ) : (
                     "Save Changes"
                   )}
+                </Button>
+
+                {/* Guided Interactive Feature Tour */}
+                <div className="pt-4 border-t border-border/60">
+                  <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-cyan-500" />
+                        <span className="text-sm font-semibold text-foreground">Interactive Feature Tour</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Replay the complete live walkthrough of My Stuff, Connectors, and creative studios.
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent("knowdeep_start_interactive_tour"));
+                      }}
+                      className="rounded-xl border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 text-xs font-semibold gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Take Live Tour</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Security & Password Management Tab */}
+          <TabsContent value="security" className="space-y-6">
+            {/* 1. Account Credentials & Security Posture */}
+            <Card className="glass-card rounded-2xl border-0 shadow-lg">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                      <span>Account Credentials & Authentication</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Overview of your account identity and cryptographic protection
+                    </CardDescription>
+                  </div>
+                  <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Active Session</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Email */}
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/50">
+                    <span className="text-xs text-muted-foreground block mb-1">Authenticated Email</span>
+                    <span className="text-sm font-semibold text-foreground break-all">{user.email}</span>
+                  </div>
+
+                  {/* Account UUID */}
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/50 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1">Account UUID</span>
+                      <span className="text-xs font-mono text-foreground truncate block max-w-[200px]">
+                        {user.id}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyUserId}
+                      className="h-8 px-2.5 rounded-lg text-xs hover:bg-muted"
+                    >
+                      {copiedUserId ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400 mr-1" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 mr-1" />
+                      )}
+                      <span>{copiedUserId ? "Copied" : "Copy"}</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Storage Architecture Callout */}
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-2">
+                  <div className="flex items-center gap-2 text-cyan-400 font-semibold">
+                    <Lock className="w-4 h-4" />
+                    <span>Cryptographic Storage Architecture</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    User credentials are protected using hardware-accelerated <strong>Web Crypto PBKDF2-HMAC-SHA256</strong> with <strong>100,000 iterations</strong> and unique cryptographically secure 16-byte random salts. Raw passwords are never transmitted in cleartext or stored on local disks.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    <div className="p-2 rounded-lg bg-slate-950/60 border border-slate-800 text-center">
+                      <span className="text-[10px] text-slate-500 block">KDF Algorithm</span>
+                      <span className="text-xs font-mono font-semibold text-slate-200">PBKDF2</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-slate-950/60 border border-slate-800 text-center">
+                      <span className="text-[10px] text-slate-500 block">Hash Engine</span>
+                      <span className="text-xs font-mono font-semibold text-slate-200">HMAC-SHA256</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-slate-950/60 border border-slate-800 text-center">
+                      <span className="text-[10px] text-slate-500 block">Work Factor</span>
+                      <span className="text-xs font-mono font-semibold text-emerald-400">100,000 Rounds</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-slate-950/60 border border-slate-800 text-center">
+                      <span className="text-[10px] text-slate-500 block">Salt Entropy</span>
+                      <span className="text-xs font-mono font-semibold text-cyan-400">128-bit CSPRNG</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 2. Change Password Form */}
+            <Card className="glass-card rounded-2xl border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <KeyRound className="w-5 h-5 text-amber-400" />
+                  <span>Update Password</span>
+                </CardTitle>
+                <CardDescription>
+                  Change your account password securely. We recommend at least 8 characters with numbers and symbols.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
+                  {passwordError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2"
+                    >
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                      <span>{passwordError}</span>
+                    </motion.div>
+                  )}
+
+                  {passwordSuccess && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2"
+                    >
+                      <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span>Password changed successfully! New hash saved with fresh salt.</span>
+                    </motion.div>
+                  )}
+
+                  {/* Current Password */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="currentPassword" className="text-xs font-medium">Current Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        type={showCurrentPass ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        required
+                        className="rounded-xl pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="newPassword" className="text-xs font-medium">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPass ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        className="rounded-xl pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPass(!showNewPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {/* Real-time Strength Meter */}
+                    {newPassword.length > 0 && (
+                      <div className="pt-2 space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground">Strength:</span>
+                          <span
+                            className={`font-semibold ${
+                              newPasswordStrength.score <= 1
+                                ? "text-rose-400"
+                                : newPasswordStrength.score === 2
+                                ? "text-amber-400"
+                                : newPasswordStrength.score === 3
+                                ? "text-cyan-400"
+                                : "text-emerald-400"
+                            }`}
+                          >
+                            {newPasswordStrength.label}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5 h-1.5">
+                          {[1, 2, 3, 4].map((step) => {
+                            const active = newPasswordStrength.score >= step;
+                            const barColor =
+                              newPasswordStrength.score <= 1
+                                ? "bg-rose-500"
+                                : newPasswordStrength.score === 2
+                                ? "bg-amber-500"
+                                : newPasswordStrength.score === 3
+                                ? "bg-cyan-500"
+                                : "bg-emerald-500";
+                            return (
+                              <div
+                                key={step}
+                                className={`h-full rounded-full transition-all ${
+                                  active ? barColor : "bg-muted"
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 text-[10px] text-muted-foreground pt-1">
+                          <span className={`flex items-center gap-1 ${newPasswordStrength.hasMinLength ? "text-emerald-500 font-medium" : ""}`}>
+                            <Check className="w-3 h-3" /> 6+ characters
+                          </span>
+                          <span className={`flex items-center gap-1 ${newPasswordStrength.hasNumber || newPasswordStrength.hasSpecial ? "text-emerald-500 font-medium" : ""}`}>
+                            <Check className="w-3 h-3" /> Numbers / Symbols
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirm New Password */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirmNewPassword" className="text-xs font-medium">Confirm New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmNewPassword"
+                        type={showConfirmNewPass ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        required
+                        className="rounded-xl pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmNewPass(!showConfirmNewPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {confirmNewPassword && newPassword !== confirmNewPassword && (
+                      <p className="text-[11px] text-rose-400">Passwords do not match yet.</p>
+                    )}
+                    {confirmNewPassword && newPassword === confirmNewPassword && (
+                      <p className="text-[11px] text-emerald-400 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Passwords match
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isUpdatingPassword}
+                    className="w-full rounded-xl gradient-bg font-semibold"
+                  >
+                    {isUpdatingPassword ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Encrypting & Updating Password...
+                      </>
+                    ) : (
+                      "Update Password"
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* 3. Session Termination & Sign Out */}
+            <Card className="glass-card rounded-2xl border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <LogOut className="w-4 h-4 text-rose-400" />
+                  <span>Session Sign Out</span>
+                </CardTitle>
+                <CardDescription>
+                  Sign out of your account on this browser. Your cached session token will be purged.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    Signed in as <strong className="text-foreground">{user.email}</strong>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Signing out ends your authenticated session immediately.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    await signOut();
+                    navigate("/");
+                    toast({
+                      title: "Signed Out",
+                      description: "You have been successfully signed out.",
+                    });
+                  }}
+                  className="rounded-xl border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out Now
                 </Button>
               </CardContent>
             </Card>
@@ -552,16 +1051,51 @@ export default function Settings() {
                   <Switch checked={showHeroPage} onCheckedChange={toggleShowHero} />
                 </div>
 
+                {/* Offline Storage & Background Sync Controls */}
+                <div className="pt-4 border-t border-border/30">
+                  <OfflineSyncSettingsSection />
+                </div>
+
               </CardContent>
             </Card>
           </TabsContent>
 
 
-          {/* Subscription Tab */}
-          <TabsContent value="subscription">
-            <Card className="glass-card rounded-2xl border-0 p-4 sm:p-6 shadow-xl">
-              <PricingTiers />
+          {/* Feedback Tab */}
+          <TabsContent value="feedback">
+            <Card className="glass-card rounded-2xl border-0 p-6 shadow-xl">
+              <CardHeader className="px-0 pt-0">
+                <CardTitle>Send Feedback & Ideas</CardTitle>
+                <CardDescription>We value your input. Let us know how we can improve.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 px-0 pb-0">
+                <Textarea
+                  placeholder="Tell us what you think, report a bug, or suggest a feature..."
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  className="min-h-[150px] rounded-xl resize-none"
+                />
+                <Button
+                  onClick={handleSubmitFeedback}
+                  disabled={feedbackSubmitting || !feedbackMessage.trim()}
+                  className="w-full rounded-xl gradient-bg"
+                >
+                  {feedbackSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Feedback"
+                  )}
+                </Button>
+              </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* About Us Tab */}
+          <TabsContent value="about">
+            <AboutUsSection />
           </TabsContent>
         </Tabs>
 

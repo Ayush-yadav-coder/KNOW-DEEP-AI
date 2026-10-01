@@ -19,9 +19,12 @@ import {
   Presentation,
   Newspaper,
   GraduationCap,
+  Check,
+  Lock,
 } from "lucide-react";
 import { z } from "zod";
 import { PolicyLinks } from "@/components/PolicyLinks";
+import { evaluatePasswordStrength } from "@/lib/secureAuth";
 
 const LOGO_URL =
   "https://storage.googleapis.com/gpt-engineer-file-uploads/FN6sASA1kTY9IsG0R9ZwEQgNbgB3/uploads/1768310383370-Gemini_Generated_Image_ajubtsajubtsajub.png";
@@ -63,31 +66,50 @@ const FLAGSHIP_FEATURES = [
 ];
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const [isLogin, setIsLogin] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "signup" || window.location.pathname === "/signup") {
+      return false;
+    }
+    return true;
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [githubLoading, setGithubLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const passwordStrength = evaluatePasswordStrength(password);
+
   // Carousel cycle index (3-second interval)
   const [currentFeatureIndex, setCurrentFeatureIndex] = useState(0);
 
-  const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
-  const { user, setIsGuest } = useAppStore();
+  const { user: authUser, signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
+  const { user: storeUser, setIsGuest, updatePreferences } = useAppStore();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    if (user) {
+    if (authUser || storeUser) {
       navigate("/chat");
     }
-  }, [user, navigate]);
+  }, [authUser, storeUser, navigate]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("mode") === "signup" || location.pathname === "/signup") {
+      setIsLogin(false);
+    } else if (params.get("mode") === "login" || location.pathname === "/login") {
+      setIsLogin(true);
+    }
+  }, [location]);
 
   // 3-second auto-cycling feature reel
   useEffect(() => {
@@ -151,10 +173,17 @@ export default function Auth() {
       }
     }
 
+    if (!isLogin) {
+      if (password !== confirmPassword) {
+        setError("Passwords do not match. Please ensure both passwords match exactly.");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(email, password, rememberMe);
         if (error) {
           setError(error.message);
         } else {
@@ -166,6 +195,13 @@ export default function Auth() {
         if (error) {
           setError(error.message);
         } else {
+          if (displayName && displayName.trim()) {
+            try {
+              localStorage.setItem("knowdeep_display_name", displayName.trim());
+              localStorage.setItem("knowdeep_user_name", displayName.trim());
+              updatePreferences({ displayName: displayName.trim() });
+            } catch {}
+          }
           setIsGuest(false);
           navigate("/chat");
         }
@@ -335,6 +371,100 @@ export default function Auth() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+
+                {/* Real-time Password Strength Meter (On Sign Up) */}
+                {!isLogin && password.length > 0 && (
+                  <div className="pt-2 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400">Password Strength:</span>
+                      <span
+                        className={`font-semibold ${
+                          passwordStrength.score <= 1
+                            ? "text-rose-400"
+                            : passwordStrength.score === 2
+                            ? "text-amber-400"
+                            : passwordStrength.score === 3
+                            ? "text-cyan-400"
+                            : "text-emerald-400"
+                        }`}
+                      >
+                        {passwordStrength.label}
+                      </span>
+                    </div>
+                    {/* 4-segment progress bar */}
+                    <div className="grid grid-cols-4 gap-1.5 h-1.5">
+                      {[1, 2, 3, 4].map((step) => {
+                        const active = passwordStrength.score >= step;
+                        const barColor =
+                          passwordStrength.score <= 1
+                            ? "bg-rose-500"
+                            : passwordStrength.score === 2
+                            ? "bg-amber-500"
+                            : passwordStrength.score === 3
+                            ? "bg-cyan-500"
+                            : "bg-emerald-500";
+                        return (
+                          <div
+                            key={step}
+                            className={`h-full rounded-full transition-all ${
+                              active ? barColor : "bg-slate-800"
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
+                    {/* Requirements hints */}
+                    <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-400 pt-1">
+                      <span className={`flex items-center gap-1 ${passwordStrength.hasMinLength ? "text-emerald-400 font-medium" : "text-slate-500"}`}>
+                        <Check className="w-3 h-3" /> 6+ characters
+                      </span>
+                      <span className={`flex items-center gap-1 ${passwordStrength.hasNumber || passwordStrength.hasSpecial ? "text-emerald-400 font-medium" : "text-slate-500"}`}>
+                        <Check className="w-3 h-3" /> Numbers / Symbols
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm Password (On Sign Up) */}
+              {!isLogin && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword" className="text-xs font-medium text-slate-300">
+                    Confirm Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      className="bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 h-10 rounded-xl pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-[11px] text-rose-400">Passwords do not match yet.</p>
+                  )}
+                  {confirmPassword && password === confirmPassword && (
+                    <p className="text-[11px] text-emerald-400 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Passwords match
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Credential Security Badge */}
+              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-2 text-[11px] text-slate-400">
+                <Lock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>Encrypted with PBKDF2-HMAC-SHA256 (100k rounds) & unique random salt.</span>
               </div>
 
               {/* Remember Me */}
@@ -561,7 +691,7 @@ export default function Auth() {
             </div>
             <div className="flex items-center gap-1.5">
               <Zap className="w-4 h-4 text-amber-400" />
-              <span>Gemini 2.5 Flash Speed</span>
+              <span>Ultra-Fast Neural Speed</span>
             </div>
           </div>
         </div>

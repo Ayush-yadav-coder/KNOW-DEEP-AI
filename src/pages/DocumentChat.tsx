@@ -37,7 +37,10 @@ const actions = [
 // Helper function to clean text that might have encoding issues
 const cleanDocumentText = (text: string): string => {
   // Remove null bytes and control characters (except newlines/tabs)
-  let cleaned = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  let cleaned = text
+    .split("")
+    .filter((c) => c.charCodeAt(0) >= 32 || c === "\n" || c === "\t" || c === "\r")
+    .join("");
   
   // Try to detect and handle common encoding issues
   // Replace common garbled characters with spaces
@@ -481,7 +484,7 @@ export default function DocumentChat() {
                           <div
                             className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                               msg.role === "user"
-                                ? "bg-primary text-primary-foreground"
+                                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-slate-800 shadow-sm"
                                 : "bg-muted/50"
                             }`}
                           >

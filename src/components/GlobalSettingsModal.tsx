@@ -1,10 +1,21 @@
-import React, { useState } from "react";
+
+
+
+
+
+
+
+
+
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/store/useAppStore";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { queueOfflineAction } from "@/lib/offlineSync";
 import {
   Sliders,
   Palette,
@@ -34,7 +45,16 @@ import {
   HelpCircle,
   Activity,
   SlidersHorizontal,
+  Zap,
+  Brain,
+  Keyboard,
+  Volume2,
+  VolumeX,
+  Play,
+  Square,
+  Loader2,
 } from "lucide-react";
+import { speakText, stopSpeaking } from "@/lib/ttsSpeaker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,11 +62,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { PolicyLinks } from "./PolicyLinks";
 import { PLATFORM_15_FEATURES, getOrderedFeatures } from "@/lib/features";
 import { cn } from "@/lib/utils";
+import { OfflineSyncSettingsSection } from "./OfflineSyncSettingsSection";
+import { KeyboardShortcutsCheatsheetView } from "./KeyboardShortcuts";
+import { AboutUsSection } from "./AboutUsSection";
 
 interface GlobalSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: "general" | "navigation" | "appearance" | "profile" | "api" | "feedback" | "data" | "about";
+  defaultTab?: "general" | "shortcuts" | "navigation" | "appearance" | "profile" | "pricing" | "feedback" | "data" | "about";
 }
 
 export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ 
@@ -55,9 +78,10 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   defaultTab = "general"
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "general" | "navigation" | "appearance" | "profile" | "api" | "feedback" | "data" | "about"
+    "general" | "shortcuts" | "navigation" | "appearance" | "profile" | "pricing" | "feedback" | "data" | "about"
   >(defaultTab);
 
+  const { signOut } = useAuth();
   const {
     user,
     isGuest,
@@ -70,12 +94,42 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [displayNameInput, setDisplayNameInput] = useState(
-    preferences.displayName || user?.user_metadata?.display_name || "AyushCoder"
-  );
+  const resolveInitialDisplayName = () => {
+    if (typeof window !== "undefined") {
+      const stored =
+        localStorage.getItem("knowdeep_display_name") ||
+        localStorage.getItem("knowdeep_user_name");
+      if (stored && stored.trim() && stored.trim().toLowerCase() !== "explorer") {
+        return stored.trim();
+      }
+    }
+    const userMetaName =
+      user?.user_metadata?.display_name ||
+      user?.user_metadata?.name ||
+      user?.user_metadata?.full_name;
+    if (userMetaName && userMetaName.trim() && userMetaName.trim().toLowerCase() !== "explorer") {
+      return userMetaName.trim();
+    }
+    if (
+      preferences.displayName &&
+      preferences.displayName.trim() &&
+      preferences.displayName.trim().toLowerCase() !== "explorer"
+    ) {
+      return preferences.displayName.trim();
+    }
+    return preferences.displayName || "Ayush";
+  };
+
+  const [displayNameInput, setDisplayNameInput] = useState(resolveInitialDisplayName);
   const [systemInstructionsInput, setSystemInstructionsInput] = useState(
     preferences.systemInstructions || ""
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      setDisplayNameInput(resolveInitialDisplayName());
+    }
+  }, [isOpen, preferences.displayName, user]);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // API Key Configuration State
@@ -95,12 +149,89 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
       : PLATFORM_15_FEATURES.map((f) => f.id);
   });
 
+  // Voice Preview & Audio Playback State
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      stopSpeaking();
+      setPreviewingVoice(null);
+      setIsLoadingPreview(false);
+    }
+  }, [isOpen]);
+
+  const handlePlayVoicePreview = async (voiceId: string, sampleText: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+
+    if (previewingVoice === voiceId) {
+      stopSpeaking();
+      setPreviewingVoice(null);
+      setIsLoadingPreview(false);
+      return;
+    }
+
+    stopSpeaking();
+    setPreviewingVoice(voiceId);
+    setIsLoadingPreview(true);
+
+    try {
+      await speakText(sampleText, {
+        voice: voiceId,
+        onStart: () => {
+          setIsLoadingPreview(false);
+          setPreviewingVoice(voiceId);
+        },
+        onEnd: () => {
+          setPreviewingVoice(null);
+          setIsLoadingPreview(false);
+        },
+        onError: () => {
+          setPreviewingVoice(null);
+          setIsLoadingPreview(false);
+        },
+      });
+    } catch {
+      setPreviewingVoice(null);
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleSelectAndPreviewVoice = (v: { id: string; label: string; desc: string; sample: string }) => {
+    updatePreferences({ voice: v.id as any });
+    toast({
+      title: `Voice Selected: ${v.label}`,
+      description: `Applied for all chats, Live Mode, and spoken responses.`,
+    });
+    handlePlayVoicePreview(v.id, v.sample);
+  };
+
   // Feedback State
   const [feedbackRating, setFeedbackRating] = useState<number>(5);
   const [feedbackCategory, setFeedbackCategory] = useState<string>("feature_request");
   const [feedbackTitle, setFeedbackTitle] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
+
+  React.useEffect(() => {
+    const handleOpenTab = (e: any) => {
+      if (e.detail?.tab) {
+        setActiveTab(e.detail.tab);
+      }
+    };
+    window.addEventListener("knowdeep_open_settings", handleOpenTab as EventListener);
+    return () => {
+      window.removeEventListener("knowdeep_open_settings", handleOpenTab as EventListener);
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -115,11 +246,56 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
     });
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
+    const cleanName = displayNameInput.trim();
     updatePreferences({
-      displayName: displayNameInput,
+      displayName: cleanName,
       systemInstructions: systemInstructionsInput,
     });
+
+    try {
+      localStorage.setItem("knowdeep_display_name", cleanName);
+      localStorage.setItem("knowdeep_user_name", cleanName);
+    } catch {}
+
+    if (user) {
+      try {
+        await supabase.auth.updateUser({
+          data: { display_name: cleanName },
+        });
+        await supabase
+          .from("profiles")
+          .upsert(
+            {
+              user_id: user.id,
+              display_name: cleanName,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" }
+          );
+      } catch (err) {
+        console.warn("Could not sync profile to Supabase:", err);
+      }
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("knowdeep_name_updated", { detail: { name: cleanName } })
+    );
+
+    if (!navigator.onLine) {
+      queueOfflineAction({
+        type: "UPDATE_PREFERENCES",
+        payload: {
+          displayName: cleanName,
+          systemInstructions: systemInstructionsInput,
+        },
+        metadata: {
+          title: "User Preferences",
+          summary: `Display name: ${cleanName || "default"}`,
+        },
+      });
+    }
+
     toast({
       title: "Settings Saved",
       description: "Profile and workspace personalization updated successfully.",
@@ -168,7 +344,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
     setTimeout(() => {
       // Store in local audit log
       const feedbacks = JSON.parse(localStorage.getItem("knowdeep_user_feedback") || "[]");
-      feedbacks.push({
+      const feedbackPayload = {
         id: "fb_" + Date.now(),
         rating: feedbackRating,
         category: feedbackCategory,
@@ -176,22 +352,35 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
         message: feedbackMessage,
         createdAt: new Date().toISOString(),
         user: user?.email || displayNameInput || "Explorer",
-      });
+      };
+      feedbacks.push(feedbackPayload);
       localStorage.setItem("knowdeep_user_feedback", JSON.stringify(feedbacks));
+
+      // Also queue into Background Sync offline action queue so it is pushed to backend
+      queueOfflineAction({
+        type: "SUBMIT_FEEDBACK",
+        payload: feedbackPayload,
+        metadata: {
+          title: "User Review & Feedback",
+          summary: `${feedbackTitle || "Feedback"}: ${feedbackMessage.slice(0, 50)}...`,
+        },
+      });
 
       setFeedbackSubmitting(false);
       setFeedbackTitle("");
       setFeedbackMessage("");
       toast({
         title: "Thank You for Your Feedback!",
-        description: "Your suggestion and review have been recorded to improve Know Deep.",
+        description: navigator.onLine
+          ? "Your suggestion has been pushed to the backend."
+          : "Saved in LocalStorage and queued to push once you reconnect.",
       });
     }, 400);
   };
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
     } catch (e) {
       console.error(e);
     }
@@ -258,13 +447,14 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
 
   const TABS = [
     { id: "general", label: "1. General & AI Engine", icon: Sliders },
-    { id: "navigation", label: "2. Customize Navigation", icon: SlidersHorizontal },
-    { id: "appearance", label: "3. Appearance & Theme", icon: Palette },
-    { id: "profile", label: "4. Profile & Persona", icon: User },
-    { id: "pricing", label: "5. Pricing & Plans", icon: Star },
-    { id: "feedback", label: "6. Send Feedback & Ideas", icon: MessageSquarePlus },
-    { id: "data", label: "7. Data & Privacy", icon: Shield },
-    { id: "about", label: "8. About & Status", icon: Info },
+    { id: "shortcuts", label: "2. Keyboard Shortcuts", icon: Keyboard },
+    { id: "navigation", label: "3. Customize Navigation", icon: SlidersHorizontal },
+    { id: "appearance", label: "4. Appearance & Theme", icon: Palette },
+    { id: "profile", label: "5. Profile & Persona", icon: User },
+    { id: "pricing", label: "6. Pricing & Plans", icon: Star },
+    { id: "feedback", label: "7. Send Feedback & Ideas", icon: MessageSquarePlus },
+    { id: "data", label: "8. Data & Privacy", icon: Shield },
+    { id: "about", label: "9. About & Status", icon: Info },
   ] as const;
 
   const currentOrderedNavItems = getOrderedFeatures(featureOrder);
@@ -284,7 +474,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
               <Sliders className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground">Global Workspace Settings</h2>
+              <h2 className="text-base font-bold text-foreground">Know Deep Workspace Settings</h2>
               <p className="text-xs text-muted-foreground">Configure models, navigation layout, profile, and plans</p>
             </div>
           </div>
@@ -339,31 +529,74 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                 </div>
 
                 {/* Default AI Model Selector */}
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <Label className="text-xs text-foreground flex items-center gap-2">
                     <Cpu className="w-3.5 h-3.5 text-indigo-500" />
                     <span>Default AI Model Engine</span>
                   </Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     {[
-                      { id: "gemini-2.5-flash", name: "Know Deep 2 Fast", badge: "Ultra Fast" },
-                      { id: "gemini-1.5-pro", name: "Know Deep 2 Pro", badge: "Deep Reasoner" },
-                      { id: "gpt-4o", name: "Know Deep 2.5 Pro Preview", badge: "Multi-Modal" },
-                    ].map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => updatePreferences({ defaultModel: m.id as any })}
-                        className={`p-3 rounded-xl border text-left transition-all ${
-                          preferences.defaultModel === m.id
-                            ? "bg-cyan-500/15 border-cyan-500 text-foreground font-semibold shadow-sm"
-                            : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <span className="text-xs font-semibold block text-foreground">{m.name}</span>
-                        <span className="text-[10px] text-cyan-500 block mt-0.5">{m.badge}</span>
-                      </button>
-                    ))}
+                      {
+                        id: "kd-2-fast",
+                        name: "Know Deep 2 Fast",
+                        hint: "Quick responses",
+                        icon: Zap,
+                        aliases: ["kd-2-fast", "gemini-3.8-flash"],
+                      },
+                      {
+                        id: "kd-2-pro",
+                        name: "Know Deep 2 Pro",
+                        hint: "Complex questions",
+                        icon: Brain,
+                        aliases: ["kd-2-pro", "gemini-3.1-pro-preview"],
+                      },
+                      {
+                        id: "kd-2.5-pro",
+                        name: "Know Deep 2.5 Pro Preview",
+                        hint: "Reasoning + Code",
+                        icon: Cpu,
+                        aliases: ["kd-2.5-pro", "gemini-flash-latest"],
+                      },
+                    ].map((m) => {
+                      const Icon = m.icon;
+                      const isSelected =
+                        preferences.defaultModel === m.id ||
+                        (m.id === "kd-2-fast" && (!preferences.defaultModel || preferences.defaultModel === "gemini-3.8-flash")) ||
+                        (m.id === "kd-2-pro" && preferences.defaultModel === "gemini-3.1-pro-preview") ||
+                        (m.id === "kd-2.5-pro" && preferences.defaultModel === "gemini-flash-latest");
+
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => updatePreferences({ defaultModel: m.id as any })}
+                          className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[92px] ${
+                            isSelected
+                              ? "bg-cyan-500/10 border-cyan-500 text-foreground shadow-md shadow-cyan-500/5 ring-1 ring-cyan-500/50"
+                              : "bg-muted/40 border-border text-muted-foreground hover:text-foreground hover:bg-muted/70 hover:border-border/80"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full mb-2">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-colors ${
+                              isSelected
+                                ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40"
+                                : "bg-muted/80 text-muted-foreground border-border"
+                            }`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            {isSelected && (
+                              <span className="text-[10px] font-bold text-cyan-400 tracking-wider bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 rounded-full uppercase">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold block text-foreground leading-tight">{m.name}</span>
+                            <span className="text-[11px] text-muted-foreground block mt-0.5">{m.hint}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -388,36 +621,221 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                   </select>
                 </div>
 
-                {/* Voice Selector */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-foreground flex items-center gap-2">
-                    <Mic className="w-3.5 h-3.5 text-pink-500" />
-                    <span>Live Chat Voice (ElevenLabs & Web Speech)</span>
-                  </Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["Rachel", "Adam", "Antony"] as const).map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => {
-                          updatePreferences({ voice: v });
-                          toast({ title: `Voice: ${v}`, description: "Selected for spoken audio playback." });
-                        }}
-                        className={`py-2.5 px-3 rounded-xl border text-center transition-all ${
-                          preferences.voice === v
-                            ? "bg-pink-500/15 border-pink-500 text-foreground font-semibold"
-                            : "bg-muted/40 border-border text-muted-foreground hover:text-foreground text-xs"
-                        }`}
-                      >
-                        {v}
-                      </button>
-                    ))}
+                {/* Voice Selector & Audio Preview Engine */}
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                    <div>
+                      <Label className="text-xs font-semibold text-foreground flex items-center gap-2">
+                        <Mic className="w-3.5 h-3.5 text-pink-500" />
+                        <span>AI Voice Engine & Audio Persona</span>
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Listen to sample previews below. Your choice applies instantly to chat audio and Live Mode.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {previewingVoice && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            stopSpeaking();
+                            setPreviewingVoice(null);
+                            setIsLoadingPreview(false);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 hover:bg-rose-500/25 transition-colors"
+                        >
+                          <Square className="w-2.5 h-2.5 fill-current" />
+                          <span>Stop Audio</span>
+                        </button>
+                      )}
+                      <span className="text-[10px] text-pink-500 font-medium px-2 py-0.5 rounded-full bg-pink-500/10 border border-pink-500/20">
+                        Neural Voices
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                    {[
+                      {
+                        id: "Adam",
+                        label: "Adam",
+                        desc: "Friendly, dynamic & clear male",
+                        gender: "Male",
+                        badge: "Popular",
+                        sample: "Hello, how can I help you today? I am Adam. You can choose me for your voice.",
+                      },
+                      {
+                        id: "Kore",
+                        label: "Kore",
+                        desc: "Warm, natural & soothing female",
+                        gender: "Female",
+                        badge: "Default",
+                        sample: "Hello, how can I help you today? I am Kore. You can choose me for your voice.",
+                      },
+                      {
+                        id: "Rachel",
+                        label: "Rachel",
+                        desc: "Expressive & vibrant female",
+                        gender: "Female",
+                        badge: "Crisp",
+                        sample: "Hello, how can I help you today? I am Rachel. You can choose me for your voice.",
+                      },
+                      {
+                        id: "Puck",
+                        label: "Puck",
+                        desc: "Engaging & upbeat male",
+                        gender: "Male",
+                        badge: "Upbeat",
+                        sample: "Hello, how can I help you today? I am Puck. You can choose me for your voice.",
+                      },
+                      {
+                        id: "Zephyr",
+                        label: "Zephyr",
+                        desc: "Gentle & conversational tone",
+                        gender: "Neutral",
+                        badge: "Gentle",
+                        sample: "Hello, how can I help you today? I am Zephyr. You can choose me for your voice.",
+                      },
+                      {
+                        id: "Charon",
+                        label: "Charon",
+                        desc: "Deep, calm & authoritative male",
+                        gender: "Male",
+                        badge: "Deep",
+                        sample: "Hello, how can I help you today? I am Charon. You can choose me for your voice.",
+                      },
+                      {
+                        id: "Antony",
+                        label: "Antony",
+                        desc: "Thoughtful & resonant male",
+                        gender: "Male",
+                        badge: "Calm",
+                        sample: "Hello, how can I help you today? I am Antony. You can choose me for your voice.",
+                      },
+                      {
+                        id: "Fenrir",
+                        label: "Fenrir",
+                        desc: "Rich, powerful & expressive male",
+                        gender: "Male",
+                        badge: "Rich",
+                        sample: "Hello, how can I help you today? I am Fenrir. You can choose me for your voice.",
+                      },
+                    ].map((v) => {
+                      const isSelected =
+                        preferences.voice === v.id ||
+                        (!preferences.voice && (v.id === "Kore" || v.id === "Adam"));
+                      const isPlayingThis = previewingVoice === v.id;
+
+                      return (
+                        <div
+                          key={v.id}
+                          onClick={() => handleSelectAndPreviewVoice(v)}
+                          className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group cursor-pointer ${
+                            isSelected
+                              ? "bg-pink-500/10 border-pink-500 text-foreground ring-1 ring-pink-500/50 shadow-md shadow-pink-500/5"
+                              : "bg-muted/40 border-border text-muted-foreground hover:text-foreground hover:bg-muted/70 hover:border-border/80"
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between w-full mb-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-bold text-foreground group-hover:text-pink-500 transition-colors">
+                                  {v.label}
+                                </span>
+                                {v.badge && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-pink-500/15 text-pink-600 dark:text-pink-400 font-semibold">
+                                    {v.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/80 text-muted-foreground border border-border/50">
+                                {v.gender}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight mb-2.5">
+                              {v.desc}
+                            </p>
+                          </div>
+
+                          {/* Preview Play Button */}
+                          <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-1.5">
+                            <span className="text-[10px] font-medium text-muted-foreground">
+                              {isSelected ? "Active Voice" : "Click to select"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handlePlayVoicePreview(v.id, v.sample, e)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-all shadow-xs ${
+                                isPlayingThis
+                                  ? isLoadingPreview
+                                    ? "bg-pink-500/20 text-pink-600 dark:text-pink-400 border border-pink-500/40"
+                                    : "bg-pink-500 text-white dark:text-black border border-pink-500 animate-pulse"
+                                  : "bg-muted/90 hover:bg-pink-500/20 text-muted-foreground hover:text-pink-500 border border-border"
+                              }`}
+                              title={`Listen to sample of ${v.label}`}
+                            >
+                              {isPlayingThis && isLoadingPreview ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  <span>Loading...</span>
+                                </>
+                              ) : isPlayingThis ? (
+                                <>
+                                  <VolumeX className="w-3 h-3" />
+                                  <span>Stop</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-3 h-3 fill-current" />
+                                  <span>Preview</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Guided Interactive Feature Tour */}
+                <div className="pt-4 border-t border-border/80">
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-indigo-500/10 border border-cyan-500/30 flex items-center justify-between gap-4 flex-wrap">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-cyan-500" />
+                        <span className="text-xs font-bold text-foreground">Interactive Feature Tour</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-semibold border border-cyan-500/30">
+                          Live Walkthrough
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground max-w-md">
+                        Take a guided walkthrough of My Stuff, Connectors, 8K Image Generator, Video Studio, Document Studio, Code Studio, and AI Chat.
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        window.dispatchEvent(new CustomEvent("knowdeep_start_interactive_tour"));
+                      }}
+                      className="h-9 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs gap-1.5 shadow-md shadow-cyan-500/20 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Take Live Tour</span>
+                    </Button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 2. CUSTOMIZE NAVIGATION */}
+            {/* 2. KEYBOARD SHORTCUTS */}
+            {activeTab === "shortcuts" && (
+              <KeyboardShortcutsCheatsheetView />
+            )}
+
+            {/* 3. CUSTOMIZE NAVIGATION */}
             {activeTab === "navigation" && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -792,6 +1210,9 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
                   <p className="text-xs text-muted-foreground mt-0.5">Manage exports, conversation histories, or terminate your session.</p>
                 </div>
 
+                {/* Offline Storage & Background Sync Manager */}
+                <OfflineSyncSettingsSection />
+
                 {/* Export Chat History */}
                 <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-3">
                   <div className="flex items-center justify-between">
@@ -867,41 +1288,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
             {/* 8. ABOUT */}
             {activeTab === "about" && (
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <Info className="w-4 h-4 text-cyan-500" />
-                    <span>About Know Deep AI</span>
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Platform runtime status, credentials, and legal compliance.</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                    <div className="p-3 rounded-xl bg-background border border-border">
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Version</span>
-                      <span className="text-xs font-bold text-foreground mt-1 block">v2.5.0-unified</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-background border border-border">
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">API Status</span>
-                      <span className="text-xs font-bold text-emerald-500 mt-1 flex items-center justify-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                        Operational
-                      </span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-background border border-border">
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Engine</span>
-                      <span className="text-xs font-bold text-cyan-500 mt-1 block">Gemini 2.5 Flash</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-background border border-border">
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Tools Suite</span>
-                      <span className="text-xs font-bold text-purple-500 mt-1 block">15 Flagship</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <PolicyLinks className="text-xs text-muted-foreground" />
-                </div>
+                <AboutUsSection isModal={true} />
               </div>
             )}
           </div>

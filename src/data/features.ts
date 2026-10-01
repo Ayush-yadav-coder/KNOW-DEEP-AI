@@ -14,6 +14,7 @@ import {
   Trophy,
   CloudSun,
   MessageSquare,
+  Video,
 } from "lucide-react";
 
 export const featureItems = [
@@ -30,7 +31,7 @@ export const featureItems = [
   { icon: BookMarked, label: "NCERT Tutor", href: "/ncert-tutor" },
   { icon: Code2, label: "Code Studio", href: "/code-studio" },
   { icon: Languages, label: "Translate", href: "/translate" },
-  { icon: BookOpen, label: "Learning Hub", href: "/learning-hub" },
+  { icon: Video, label: "Video Studio", href: "/video-studio" },
   { icon: Presentation, label: "Presentation Studio", href: "/presentation-studio" },
 ] as const;
 

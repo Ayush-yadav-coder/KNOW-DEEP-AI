@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { MyGeneratedAppsSkeleton } from "@/components/DashboardSkeletons";
 
 interface GeneratedApp {
   id: string;
@@ -165,12 +166,8 @@ export default function MyGeneratedApps() {
             </div>
           </motion.div>
 
-          {/* Loading */}
-          {isLoading && (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          )}
+          {/* Loading Skeleton */}
+          {isLoading && <MyGeneratedAppsSkeleton />}
 
           {/* Apps Grid */}
           {!isLoading && filteredApps.length > 0 && (

@@ -73,6 +73,16 @@ export default function Profile() {
         variant: "destructive",
       });
     } else {
+      try {
+        localStorage.setItem("knowdeep_display_name", displayName.trim());
+        localStorage.setItem("knowdeep_user_name", displayName.trim());
+        useAppStore.getState().updatePreferences({ displayName: displayName.trim() });
+        window.dispatchEvent(
+          new CustomEvent("knowdeep_name_updated", { detail: { name: displayName.trim() } })
+        );
+      } catch (e) {
+        console.warn("Could not save display name:", e);
+      }
       toast({
         title: "Success",
         description: "Profile saved successfully",

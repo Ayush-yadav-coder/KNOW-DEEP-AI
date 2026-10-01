@@ -19,16 +19,21 @@ export const MobileBottomNav: React.FC = () => {
   const PAGE_SIZE = 5;
   const totalPages = Math.ceil(orderedFeatures.length / PAGE_SIZE);
 
+  const lastPathRef = useRef("");
+
   // Auto select active page on mount/route change
   React.useEffect(() => {
-    const activeIndex = orderedFeatures.findIndex(
-      (f) =>
-        f.href === location.pathname ||
-        (f.id === "chat" && (location.pathname === "/chat" || location.pathname === "/app"))
-    );
-    if (activeIndex !== -1) {
-      const targetPage = Math.floor(activeIndex / PAGE_SIZE);
-      setCurrentPage(targetPage);
+    if (location.pathname !== lastPathRef.current) {
+      lastPathRef.current = location.pathname;
+      const activeIndex = orderedFeatures.findIndex(
+        (f) =>
+          f.href === location.pathname ||
+          (f.id === "chat" && (location.pathname === "/chat" || location.pathname === "/app"))
+      );
+      if (activeIndex !== -1) {
+        const targetPage = Math.floor(activeIndex / PAGE_SIZE);
+        setCurrentPage(targetPage);
+      }
     }
   }, [location.pathname, orderedFeatures]);
 
@@ -66,71 +71,80 @@ export const MobileBottomNav: React.FC = () => {
       <nav
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 backdrop-blur-none select-none shadow-2xl transition-all"
+        className="fixed bottom-0 left-0 right-0 z-30 bg-white/75 dark:bg-slate-950/75 border-t border-slate-200/40 dark:border-slate-800/40 backdrop-blur-xl select-none shadow-2xl transition-all"
       >
-        <div className="max-w-2xl mx-auto flex items-center justify-between px-2 pt-1 pb-1">
+        <div className="max-w-2xl mx-auto flex items-center justify-between px-2 pt-1.5 pb-1">
           {/* Prev Page Button */}
           <button
             type="button"
             onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
             disabled={currentPage === 0}
             className={cn(
-              "p-1.5 rounded-xl text-slate-500 dark:text-slate-400 transition-all hover:bg-slate-100 dark:hover:bg-slate-800/80 active:scale-95",
+              "p-1.5 rounded-xl text-slate-500 dark:text-slate-400 transition-all hover:bg-slate-500/10 dark:hover:bg-slate-400/10 active:scale-95",
               currentPage === 0 ? "opacity-20 cursor-default" : "hover:text-cyan-500 dark:hover:text-cyan-400"
             )}
             aria-label="Previous tools page (Features 1-5, 6-10, 11-15)"
           >
             <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-
+ 
           {/* 5-Icon Horizontal Viewport */}
-          <div className="flex-1 grid grid-cols-5 gap-1 px-1">
-            <AnimatePresence mode="wait">
-              {currentFeatures.map((item) => {
-                const isActive =
-                  location.pathname === item.href ||
-                  (item.id === "chat" && (location.pathname === "/chat" || location.pathname === "/app"));
-                const Icon = item.icon;
-
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.href}
-                    className="flex flex-col items-center py-1 group transition-transform"
-                  >
-                    <div
-                      className={cn(
-                        "w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200",
-                        isActive
-                          ? `bg-gradient-to-br ${item.color} text-white shadow-md shadow-cyan-500/25 scale-105 ring-1 ring-white/30`
-                          : "bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100 group-hover:bg-slate-200/80 dark:group-hover:bg-slate-700/80"
-                      )}
+          <div className="flex-1 overflow-hidden relative min-h-[60px] flex items-center">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={currentPage}
+                initial={{ opacity: 0, x: 12, filter: "blur(4px)", scale: 0.98 }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)", scale: 1 }}
+                exit={{ opacity: 0, x: -12, filter: "blur(4px)", scale: 0.98 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="grid grid-cols-5 gap-1.5 px-1 h-full w-full"
+              >
+                {currentFeatures.map((item) => {
+                  const isActive =
+                    location.pathname === item.href ||
+                    (item.id === "chat" && (location.pathname === "/chat" || location.pathname === "/app"));
+                  const Icon = item.icon;
+ 
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.href}
+                      className="flex flex-col items-center py-1 group transition-transform"
                     >
-                      <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                    </div>
-                    <span
-                      className={cn(
-                        "text-[9px] sm:text-[10px] font-medium mt-0.5 truncate max-w-[62px] text-center transition-colors",
-                        isActive
-                          ? "text-cyan-600 dark:text-cyan-400 font-bold"
-                          : "text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200"
-                      )}
-                    >
-                      {item.shortLabel}
-                    </span>
-                  </Link>
-                );
-              })}
+                      <div
+                        className={cn(
+                          "w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 border",
+                          isActive
+                            ? `bg-gradient-to-br ${item.color} text-white shadow-[0_4px_12px_rgba(6,182,212,0.25)] scale-105 border-white/20 ring-1 ring-cyan-500/20`
+                            : "bg-slate-500/5 dark:bg-slate-400/5 border-slate-500/10 dark:border-slate-400/10 text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100 group-hover:bg-slate-500/10 dark:group-hover:bg-slate-400/10"
+                        )}
+                      >
+                        <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[9px] sm:text-[10px] font-medium mt-0.5 truncate max-w-[62px] text-center transition-colors",
+                          isActive
+                            ? "text-cyan-600 dark:text-cyan-400 font-bold"
+                            : "text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200"
+                        )}
+                      >
+                        {item.shortLabel}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </motion.div>
             </AnimatePresence>
           </div>
-
+ 
           {/* Next Page Button */}
           <button
             type="button"
             onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={currentPage === totalPages - 1}
             className={cn(
-              "p-1.5 rounded-xl text-slate-500 dark:text-slate-400 transition-all hover:bg-slate-100 dark:hover:bg-slate-800/80 active:scale-95",
+              "p-1.5 rounded-xl text-slate-500 dark:text-slate-400 transition-all hover:bg-slate-500/10 dark:hover:bg-slate-400/10 active:scale-95",
               currentPage === totalPages - 1 ? "opacity-20 cursor-default" : "hover:text-cyan-500 dark:hover:text-cyan-400"
             )}
             aria-label="Next tools page"
