@@ -7,13 +7,11 @@ import { CapabilityShowcase } from "@/components/CapabilityShowcase";
 import { ChatSection } from "@/components/ChatSection";
 import { PricingSection } from "@/components/PricingSection";
 import { Footer } from "@/components/Footer";
-import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { PushNotificationPrompt, usePushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const { showPrompt, setShowPrompt } = usePushNotificationPrompt();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -26,11 +24,6 @@ const Index = () => {
         navigate("/chat", { replace: true });
         return;
       }
-    }
-    const onboardingCompleted = localStorage.getItem("onboarding_completed");
-    if (!onboardingCompleted) {
-      const timer = setTimeout(() => setShowOnboarding(true), 1000);
-      return () => clearTimeout(timer);
     }
   }, [user, loading, navigate]);
 
@@ -55,15 +48,9 @@ const Index = () => {
       </main>
       <Footer />
 
-      {/* Onboarding Tutorial */}
-      <OnboardingTutorial 
-        isOpen={showOnboarding} 
-        onClose={() => setShowOnboarding(false)} 
-      />
-
       {/* Push Notification Prompt */}
       <AnimatePresence>
-        {showPrompt && !showOnboarding && (
+        {showPrompt && (
           <PushNotificationPrompt onClose={() => setShowPrompt(false)} />
         )}
       </AnimatePresence>

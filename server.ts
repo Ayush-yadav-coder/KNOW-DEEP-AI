@@ -4,7 +4,6 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
-import { createServer as createViteServer } from "vite";
 import { WebSocketServer, WebSocket as WsWebSocket } from "ws";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -3947,6 +3946,7 @@ async function startServer() {
   });
 
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -3966,6 +3966,12 @@ async function startServer() {
   });
 }
 
-startServer().catch((err) => {
-  console.error("Failed to start server:", err);
-});
+// Only start standalone HTTP listener if not running in serverless environment
+if (process.env.VERCEL !== "1") {
+  startServer().catch((err) => {
+    console.error("Failed to start server:", err);
+  });
+}
+
+export default app;
+export { app };

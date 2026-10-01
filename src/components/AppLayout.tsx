@@ -21,7 +21,6 @@ import { MobileBottomNav } from "./MobileBottomNav";
 import { GlobalSettingsModal } from "./GlobalSettingsModal";
 import { PolicyLinks } from "./PolicyLinks";
 import { ProfileOnboardingModal } from "./ProfileOnboardingModal";
-import { BeginnerTutorialModal } from "./BeginnerTutorialModal";
 import { modKey } from "./KeyboardShortcuts";
 import {
   DropdownMenu,
@@ -49,7 +48,6 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   const { toggleSidebar, conversations, currentConversationId } = useAppStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsDefaultTab, setSettingsDefaultTab] = useState<any>("general");
-  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   const isInChat = location.pathname === "/chat";
   const activeChat = conversations.find((c) => c.id === currentConversationId);
@@ -69,36 +67,10 @@ export function AppLayout({ children, title }: AppLayoutProps) {
     };
   }, []);
 
-  useEffect(() => {
-    // Check if new account for the first time
-    if (user?.id) {
-      try {
-        const tutorialKey = `tutorial_shown_${user.id}`;
-        const hasShown = localStorage.getItem(tutorialKey);
-        if (!hasShown) {
-          const timer = setTimeout(() => {
-            setIsTutorialOpen(true);
-          }, 800);
-          return () => {
-            clearTimeout(timer);
-          };
-        }
-      } catch (e) {
-        console.warn("Could not check account tutorial status:", e);
-      }
-    }
-  }, [user]);
-
   return (
     <div className="min-h-screen bg-background flex flex-col text-foreground">
       {/* Unified Slide-Out Sidebar Drawer */}
       <UnifiedSidebarDrawer onOpenSettings={() => setIsSettingsOpen(true)} />
-
-      {/* Beginner-Friendly Step-by-Step Interactive Tutorial */}
-      <BeginnerTutorialModal
-        isOpen={isTutorialOpen}
-        onClose={() => setIsTutorialOpen(false)}
-      />
 
       {/* Top Header Navigation Bar */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/85 backdrop-blur-md border-b border-border/60">

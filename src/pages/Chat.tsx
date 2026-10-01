@@ -131,11 +131,11 @@ export default function Chat() {
   const [pausedMessageId, setPausedMessageId] = useState<string | null>(null);
 
   const [isGuideOpen, setIsGuideOpen] = useState(() => {
-    return localStorage.getItem("knowdeep_v3_interactive_tour_v4") !== "true";
+    return localStorage.getItem("knowdeep_v3_single_clean_tour_v1") !== "true";
   });
 
   const handleCloseGuide = () => {
-    localStorage.setItem("knowdeep_v3_interactive_tour_v4", "true");
+    localStorage.setItem("knowdeep_v3_single_clean_tour_v1", "true");
     setIsGuideOpen(false);
   };
 
