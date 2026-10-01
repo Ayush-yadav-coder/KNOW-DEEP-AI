@@ -1,8 +1,8 @@
+import React, { useEffect, useState, useRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TypewriterMarkdown } from "./TypewriterMarkdown";
 import { MessageFeedback } from "./MessageFeedback";
 import { FollowUpSuggestions } from "./FollowUpSuggestions";
-import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Copy, Check, RotateCcw, Plus, Volume2, VolumeX, Sparkles, Download, FileText, FileJson, Presentation, Video, Code2, ImageIcon, FolderOpen, ArrowUpRight, CloudSun, Radio, Trophy } from "lucide-react";
 import { KNOWDEEP_LOGO_URL } from "@/lib/branding";
@@ -51,7 +51,7 @@ function localFollowUps(content: string): string[] {
   return suggestions.slice(0, 3);
 }
 
-export function ChatMessage({ message, isLast = false, onFollowUp, previousUserMessage, onRetry, canRetry = false }: ChatMessageProps) {
+function ChatMessageComponent({ message, isLast = false, onFollowUp, previousUserMessage, onRetry, canRetry = false }: ChatMessageProps) {
   const [showQuickSummary, setShowQuickSummary] = useState(false);
   const [aiFollowUps, setAiFollowUps] = useState<string[] | null>(null);
   const [showContextMenu, setShowContextMenu] = useState(false);
@@ -616,3 +616,6 @@ export function ChatMessage({ message, isLast = false, onFollowUp, previousUserM
     </motion.div>
   );
 }
+
+export const ChatMessage = memo(ChatMessageComponent);
+

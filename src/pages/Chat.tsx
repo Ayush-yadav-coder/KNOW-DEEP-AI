@@ -159,17 +159,21 @@ export default function Chat() {
   const [dismissedIntentKey, setDismissedIntentKey] = useState<string | null>(null);
 
   useEffect(() => {
-    const trimmed = input.trim();
-    if (trimmed.length > 5) {
-      const match = detectUserIntent(trimmed);
-      if (match.intent !== "general_chat" && match.confidence >= 0.85) {
-        if (dismissedIntentKey !== trimmed) {
-          setActiveIntentMatch(match);
-          return;
+    const handler = setTimeout(() => {
+      const trimmed = input.trim();
+      if (trimmed.length > 5) {
+        const match = detectUserIntent(trimmed);
+        if (match.intent !== "general_chat" && match.confidence >= 0.85) {
+          if (dismissedIntentKey !== trimmed) {
+            setActiveIntentMatch(match);
+            return;
+          }
         }
       }
-    }
-    setActiveIntentMatch(null);
+      setActiveIntentMatch(null);
+    }, 150);
+
+    return () => clearTimeout(handler);
   }, [input, dismissedIntentKey]);
 
   useEffect(() => {
@@ -357,9 +361,15 @@ export default function Chat() {
     }
   }, [currentConversation]);
 
+  const scrollToBottom = useCallback((smooth = true) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+    }
+  }, []);
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, streamingContent]);
+    scrollToBottom(false);
+  }, [messages]);
 
   const prevListeningRef = useRef(false);
 
@@ -376,10 +386,6 @@ export default function Chat() {
     }
     prevListeningRef.current = isListening;
   }, [isListening, transcript]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
 
   const loadMessages = async (conversationId: string) => {
     setPausedMessageId(null);
@@ -849,6 +855,17 @@ export default function Chat() {
       let textBuffer = "";
       let fullContent = "";
       let streamDone = false;
+      let rafPending = false;
+
+      const updateStreamingUI = (text: string) => {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+          setStreamingContent(text);
+          scrollToBottom(false);
+          rafPending = false;
+        });
+      };
 
       while (!streamDone) {
         const { done, value } = await reader.read();
@@ -876,7 +893,7 @@ export default function Chat() {
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               fullContent += content;
-              setStreamingContent(fullContent);
+              updateStreamingUI(fullContent);
             }
           } catch {
             textBuffer = line + "\n" + textBuffer;
@@ -884,6 +901,8 @@ export default function Chat() {
           }
         }
       }
+
+      setStreamingContent("");
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),

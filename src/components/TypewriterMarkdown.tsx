@@ -23,9 +23,9 @@ export function TypewriterMarkdown({
   className = "",
   showSkipButton = false,
 }: TypewriterMarkdownProps) {
-  // If animation is disabled and not streaming, display full content immediately
-  const [displayedText, setDisplayedText] = useState(() => (animate || isStreaming ? "" : content));
-  const [isTyping, setIsTyping] = useState(() => Boolean(animate || isStreaming));
+  // When streaming or when animation is not requested, directly show the content to eliminate lag
+  const [displayedText, setDisplayedText] = useState(() => (animate && !isStreaming ? "" : content));
+  const [isTyping, setIsTyping] = useState(() => Boolean(animate && !isStreaming));
   const fullTextRef = useRef(content);
   fullTextRef.current = content;
 
@@ -40,7 +40,7 @@ export function TypewriterMarkdown({
   };
 
   useEffect(() => {
-    if (!animate && !isStreaming) {
+    if (isStreaming || !animate) {
       setDisplayedText(content);
       setIsTyping(false);
       return;
@@ -57,20 +57,20 @@ export function TypewriterMarkdown({
         setIsTyping(true);
         const elapsed = now - lastTickTime;
         
-        // Calculate adaptive step size: if far behind, speed up dynamically so it stays responsive
+        // Dynamic fast typing speed
         const backlog = target.length - currentLen;
         let step = 1;
         let effectiveSpeed = speed;
 
         if (backlog > 200) {
-          step = 8;
-          effectiveSpeed = 4;
+          step = 10;
+          effectiveSpeed = 2;
         } else if (backlog > 80) {
-          step = 4;
-          effectiveSpeed = 6;
+          step = 5;
+          effectiveSpeed = 4;
         } else if (backlog > 30) {
           step = 2;
-          effectiveSpeed = 8;
+          effectiveSpeed = 6;
         }
 
         if (elapsed >= effectiveSpeed) {
@@ -81,13 +81,8 @@ export function TypewriterMarkdown({
 
         animationFrameId = requestAnimationFrame(tick);
       } else {
-        if (!isStreaming) {
-          setIsTyping(false);
-          onComplete?.();
-        } else {
-          // Still streaming, wait for more chunks
-          animationFrameId = requestAnimationFrame(tick);
-        }
+        setIsTyping(false);
+        onComplete?.();
       }
     };
 
