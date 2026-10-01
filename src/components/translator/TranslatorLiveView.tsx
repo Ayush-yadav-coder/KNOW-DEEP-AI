@@ -52,6 +52,7 @@ import {
   TranslationHistoryItem,
 } from "./TranslatorTypes";
 import { safeParseJson } from "./TranslatorUtils";
+import { generateTextWithFallback } from "@/lib/geminiDirectCall";
 
 interface TranslatorLiveViewProps {
   onAddHistory: (item: Omit<TranslationHistoryItem, "id" | "timestamp">) => void;
@@ -273,25 +274,25 @@ Instructions:
   "culturalNote": "optional short 1-line note if there is an important idiom/cultural nuance"
 }`;
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: prompt }],
+      let textResponse = "";
+      try {
+        textResponse = await generateTextWithFallback({
+          prompt,
           systemInstruction: "You are the universal Translator AI. Respond strictly in valid JSON without conversational wrapper text.",
-        }),
-      });
-
-      if (!res.ok) throw new Error("Translation request failed");
-      const data = await res.json();
-      let textResponse = data.content || data.text || "";
+        });
+      } catch {
+        // Simple direct translation prompt fallback
+        textResponse = await generateTextWithFallback({
+          prompt: `Translate to ${tgtName} with ${currentTone} tone: "${textToTranslate}". Return only JSON: {"translation": "...", "phoneticGuide": "...", "detectedLanguage": "${sourceLang}"}`,
+        });
+      }
 
       const parsed = safeParseJson(textResponse, {
-        translation: "",
+        translation: textResponse.replace(/```json|```|\{|\}/g, "").trim(),
         phoneticGuide: "",
         detectedLanguage: null
       });
-      const finalTranslation = parsed.translation || "";
+      const finalTranslation = parsed.translation || textResponse;
       const finalPhonetic = parsed.phoneticGuide || "";
       const detected = parsed.detectedLanguage;
 
@@ -313,31 +314,13 @@ Instructions:
         phoneticGuide: finalPhonetic,
         isBookmarked: false,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Translation error:", err);
-      // Fallback translation attempt with simple string output
-      try {
-        const fallbackRes = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "user",
-                content: `Translate to ${tgtName} with ${currentTone} tone: "${textToTranslate}". Return only the translation without explanation.`,
-              },
-            ],
-          }),
-        });
-        const fbData = await fallbackRes.json();
-        setTranslatedText(fbData.content?.trim() || fbData.text?.trim() || "Translation error. Please try again.");
-      } catch {
-        toast({
-          title: "Translation Failed",
-          description: "Could not connect to translation engine. Please check your internet.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Translation Notice",
+        description: err?.message || "Could not complete translation. Please verify your API Key in Settings.",
+        variant: "destructive",
+      });
     } finally {
       setIsTranslating(false);
     }

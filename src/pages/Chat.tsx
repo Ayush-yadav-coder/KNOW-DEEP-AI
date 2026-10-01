@@ -62,6 +62,7 @@ import { VoiceWaveformBar } from "@/components/chat/VoiceWaveformBar";
 import { queueOfflineAction } from "@/lib/offlineSync";
 import { detectUserIntent, type IntentMatchResult } from "@/lib/intentDispatcher";
 import { IntentRedirectBanner } from "@/components/chat/IntentRedirectBanner";
+import { streamClientGemini, getClientGeminiApiKey } from "@/lib/clientGeminiFallback";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -811,94 +812,100 @@ export default function Chat() {
         }
       } catch {}
 
-      let response: Response;
+      let fullContent = "";
+      let streamedViaServer = false;
+
+      const updateStreamingUI = (text: string) => {
+        setStreamingContent(text);
+        scrollToBottom(false);
+      };
+
       try {
-        response = await fetch("/api/chat/stream", {
+        const response = await fetch("/api/chat/stream", {
           method: "POST",
           headers: streamHeaders,
           body: JSON.stringify(requestPayload),
           signal: controller?.signal,
         });
-      } catch (localErr) {
-        if (controller?.signal?.aborted || (localErr as Error)?.name === "AbortError") {
-          throw localErr;
-        }
-        const { data: { session: streamSession } } = await supabase.auth.getSession();
-        response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stream-chat`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${streamSession?.access_token || ""}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            ...streamHeaders,
-          },
-          body: JSON.stringify(requestPayload),
-          signal: controller?.signal,
-        });
-      }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error ||
-          errorData.message ||
-          `Server returned status ${response.status}. Please check your API keys or Vercel Environment Variables.`
-        );
-      }
+        if (response.ok && response.body) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let textBuffer = "";
+          let streamDone = false;
 
-      if (!response.body) {
-        throw new Error("No response body");
-      }
+          while (!streamDone) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let fullContent = "";
-      let streamDone = false;
-      let rafPending = false;
+            textBuffer += decoder.decode(value, { stream: true });
+            let newlineIndex: number;
+            while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+              let line = textBuffer.slice(0, newlineIndex);
+              textBuffer = textBuffer.slice(newlineIndex + 1);
 
-      const updateStreamingUI = (text: string) => {
-        if (rafPending) return;
-        rafPending = true;
-        requestAnimationFrame(() => {
-          setStreamingContent(text);
-          scrollToBottom(false);
-          rafPending = false;
-        });
-      };
+              if (line.endsWith("\r")) line = line.slice(0, -1);
+              if (line.startsWith(":") || line.trim() === "") continue;
+              if (!line.startsWith("data: ")) continue;
 
-      while (!streamDone) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        textBuffer += decoder.decode(value, { stream: true });
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr === "[DONE]") {
+                streamDone = true;
+                break;
+              }
 
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") {
-            streamDone = true;
-            break;
+              try {
+                const parsed = JSON.parse(jsonStr);
+                const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+                if (content) {
+                  fullContent += content;
+                  updateStreamingUI(fullContent);
+                }
+              } catch {
+                textBuffer = line + "\n" + textBuffer;
+                break;
+              }
+            }
           }
+          if (fullContent.trim()) {
+            streamedViaServer = true;
+          }
+        }
+      } catch (serverErr) {
+        if (controller?.signal?.aborted || (serverErr as Error)?.name === "AbortError") {
+          throw serverErr;
+        }
+        console.info("Backend streaming unavailable, executing direct client failover...", serverErr);
+      }
 
+      // If server streaming didn't complete or was blocked, stream directly from client SDK
+      if (!streamedViaServer) {
+        const clientKey = getClientGeminiApiKey();
+        if (clientKey) {
           try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              fullContent += content;
+            for await (const chunk of streamClientGemini({
+              messages: payloadMessages,
+              preferredModel: mappedModel,
+              apiKey: clientKey,
+            })) {
+              fullContent += chunk;
               updateStreamingUI(fullContent);
             }
-          } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
+          } catch (clientErr) {
+            console.warn("Client fallback notice:", clientErr);
           }
+        }
+
+        // If still no content generated, provide friendly one-click key guide
+        if (!fullContent.trim()) {
+          fullContent =
+            `👋 **Welcome to Know Deep AI!**\n\n` +
+            `To enable live AI responses:\n\n` +
+            `1. Click **Settings ⚙️** (bottom-left or sidebar).\n` +
+            `2. Go to **API Keys & Integrations**.\n` +
+            `3. Paste your free Google AI Studio key into **Google Gemini API Key** and click **Save Keys**.\n\n` +
+            `*(You can get a free key in 10 seconds at [aistudio.google.com](https://aistudio.google.com))*`;
+          updateStreamingUI(fullContent);
         }
       }
 
