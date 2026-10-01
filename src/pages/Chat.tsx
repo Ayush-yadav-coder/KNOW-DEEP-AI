@@ -795,11 +795,21 @@ export default function Chat() {
         model: mappedModel,
       };
 
+      const streamHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      try {
+        const storedKey = localStorage.getItem("knowdeep_gemini_api_key");
+        if (storedKey?.trim()) {
+          streamHeaders["x-gemini-api-key"] = storedKey.trim();
+        }
+      } catch {}
+
       let response: Response;
       try {
         response = await fetch("/api/chat/stream", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: streamHeaders,
           body: JSON.stringify(requestPayload),
           signal: controller?.signal,
         });
@@ -814,6 +824,7 @@ export default function Chat() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${streamSession?.access_token || ""}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...streamHeaders,
           },
           body: JSON.stringify(requestPayload),
           signal: controller?.signal,
@@ -822,7 +833,11 @@ export default function Chat() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error: ${response.status}`);
+        throw new Error(
+          errorData.error ||
+          errorData.message ||
+          `Server returned status ${response.status}. Please check your API keys or Vercel Environment Variables.`
+        );
       }
 
       if (!response.body) {

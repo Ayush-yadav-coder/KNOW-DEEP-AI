@@ -30,12 +30,22 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
     
     let fullContent = "";
 
+    const streamHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    try {
+      const storedKey = localStorage.getItem("knowdeep_gemini_api_key");
+      if (storedKey?.trim()) {
+        streamHeaders["x-gemini-api-key"] = storedKey.trim();
+      }
+    } catch {}
+
     try {
       let response: Response;
       try {
         response = await fetch("/api/chat/stream", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: streamHeaders,
           body: JSON.stringify({ messages }),
           signal: controller?.signal,
         });
@@ -50,6 +60,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session?.access_token || ""}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...streamHeaders,
           },
           body: JSON.stringify({ messages }),
           signal: controller?.signal,
@@ -58,7 +69,11 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error: ${response.status}`);
+        throw new Error(
+          errorData.error ||
+          errorData.message ||
+          `Server status ${response.status}. Please check your Gemini API key in Settings or Vercel Environment Variables.`
+        );
       }
 
       if (!response.body) {

@@ -346,6 +346,19 @@ export default function ImageGenerator() {
     reader.readAsDataURL(file);
   };
 
+  const getImageApiHeaders = () => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    try {
+      const storedGemini = localStorage.getItem("knowdeep_gemini_api_key");
+      if (storedGemini?.trim()) headers["x-gemini-api-key"] = storedGemini.trim();
+      const storedPexels = localStorage.getItem("knowdeep_pexels_api_key");
+      if (storedPexels?.trim()) headers["x-pexels-api-key"] = storedPexels.trim();
+    } catch {
+      // Ignore localStorage access restrictions in private browsing
+    }
+    return headers;
+  };
+
   // Vision AI: Describe Image and Extract Generative Prompt
   const handleDescribeImageVision = async (mode: "describe" | "extract_prompt" = "extract_prompt") => {
     if (!referenceImageA) {
@@ -361,7 +374,7 @@ export default function ImageGenerator() {
     try {
       const res = await fetch("/api/describe-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getImageApiHeaders(),
         body: JSON.stringify({
           image: referenceImageA,
           mode,
@@ -408,7 +421,7 @@ export default function ImageGenerator() {
     try {
       const res = await fetch("/api/remix-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getImageApiHeaders(),
         body: JSON.stringify({
           imageA: referenceImageA,
           imageB: referenceImageB,
@@ -454,7 +467,7 @@ export default function ImageGenerator() {
     try {
       const res = await fetch("/api/enhance-prompt", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getImageApiHeaders(),
         body: JSON.stringify({ prompt, style: selectedStyle }),
       });
       const data = await res.json();
@@ -502,7 +515,7 @@ export default function ImageGenerator() {
     try {
       const res = await fetch("/api/generate-variations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getImageApiHeaders(),
         body: JSON.stringify({
           prompt: prompt || "Masterpiece visual artwork",
           style: selectedStyle,
@@ -524,7 +537,7 @@ export default function ImageGenerator() {
         try {
           const genRes = await fetch("/api/generate-image", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getImageApiHeaders(),
             body: JSON.stringify({
               prompt: spec.prompt,
               style: selectedStyle,
@@ -618,7 +631,7 @@ export default function ImageGenerator() {
     try {
       const res = await fetch("/api/generate-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getImageApiHeaders(),
         body: JSON.stringify({
           prompt: promptToUse,
           style: selectedStyle,
@@ -632,7 +645,13 @@ export default function ImageGenerator() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || "Generation blocked by safety filters");
+        throw new Error(
+          errData.message ||
+          errData.error ||
+          (res.status === 400 || res.status === 403
+            ? "Prompt flagged by content filters. Please try a different prompt."
+            : `Image generation notice (${res.status}). Please check network or API keys.`)
+        );
       }
 
       const data = await res.json();
