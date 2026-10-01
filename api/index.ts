@@ -15,5 +15,20 @@ export default function handler(req: any, res: any) {
     return;
   }
 
+  // Restore the real requested path on Vercel Serverless
+  const matchedPath = req.headers["x-matched-path"] || req.headers["x-invoke-path"] || req.headers["x-forwarded-uri"];
+  if (typeof matchedPath === "string" && matchedPath.startsWith("/api")) {
+    req.url = matchedPath;
+  } else if (req.headers["x-now-route-matches"]) {
+    try {
+      const matchParams = new URLSearchParams(req.headers["x-now-route-matches"]);
+      const sub = matchParams.get("1") || matchParams.get("match") || matchParams.get("0");
+      if (sub) {
+        req.url = `/api/${sub.startsWith("/") ? sub.slice(1) : sub}`;
+      }
+    } catch {}
+  }
+
   return app(req, res);
 }
+

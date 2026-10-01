@@ -28,9 +28,14 @@ app.use(express.json({ limit: "25mb" }));
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-gemini-api-key, x-pexels-api-key, x-weather-api-key, x-sports-api-key");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-gemini-api-key, x-pexels-api-key, x-weather-api-key, x-sports-api-key, x-now-route-matches, x-matched-path");
     return res.status(200).end();
+  }
+
+  const matched = (req.headers["x-matched-path"] as string) || (req.headers["x-invoke-path"] as string);
+  if (matched && matched.startsWith("/api") && (req.url === "/api" || req.url === "/" || req.url === "/api/")) {
+    req.url = matched;
   }
   next();
 });
