@@ -69,7 +69,7 @@ import { AboutUsSection } from "./AboutUsSection";
 interface GlobalSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: "general" | "apikeys" | "shortcuts" | "navigation" | "appearance" | "profile" | "pricing" | "feedback" | "data" | "about";
+  defaultTab?: "general" | "shortcuts" | "navigation" | "appearance" | "profile" | "pricing" | "feedback" | "data" | "about";
 }
 
 export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({ 
@@ -78,7 +78,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   defaultTab = "general"
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "general" | "apikeys" | "shortcuts" | "navigation" | "appearance" | "profile" | "pricing" | "feedback" | "data" | "about"
+    "general" | "shortcuts" | "navigation" | "appearance" | "profile" | "pricing" | "feedback" | "data" | "about"
   >(defaultTab);
 
   const { signOut } = useAuth();
@@ -131,32 +131,6 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
     }
   }, [isOpen, preferences.displayName, user]);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
-  // API Key Configuration State
-  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState(() => {
-    try {
-      return localStorage.getItem("knowdeep_gemini_api_key") || "";
-    } catch {
-      return "";
-    }
-  });
-  const [pexelsApiKeyInput, setPexelsApiKeyInput] = useState(() => {
-    try {
-      return localStorage.getItem("knowdeep_pexels_api_key") || "";
-    } catch {
-      return "";
-    }
-  });
-  const [weatherApiKeyInput, setWeatherApiKeyInput] = useState(
-    preferences.weatherApiKey || ""
-  );
-  const [sportsApiKeyInput, setSportsApiKeyInput] = useState(
-    preferences.sportsApiKey || ""
-  );
-  const [showGeminiKey, setShowGeminiKey] = useState(false);
-  const [showPexelsKey, setShowPexelsKey] = useState(false);
-  const [showWeatherKey, setShowWeatherKey] = useState(false);
-  const [showSportsKey, setShowSportsKey] = useState(false);
 
   // Navigation Customizer State
   const [featureOrder, setFeatureOrder] = useState<string[]>(() => {
@@ -250,41 +224,6 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   }, []);
 
   if (!isOpen) return null;
-
-  const handleSaveApiKeys = () => {
-    const cleanGemini = geminiApiKeyInput.trim();
-    const cleanPexels = pexelsApiKeyInput.trim();
-    const cleanWeather = weatherApiKeyInput.trim();
-    const cleanSports = sportsApiKeyInput.trim();
-
-    try {
-      if (cleanGemini) {
-        localStorage.setItem("knowdeep_gemini_api_key", cleanGemini);
-      } else {
-        localStorage.removeItem("knowdeep_gemini_api_key");
-      }
-      if (cleanPexels) {
-        localStorage.setItem("knowdeep_pexels_api_key", cleanPexels);
-      } else {
-        localStorage.removeItem("knowdeep_pexels_api_key");
-      }
-      if (cleanWeather) {
-        localStorage.setItem("knowdeep_weather_api_key", cleanWeather);
-      }
-      if (cleanSports) {
-        localStorage.setItem("knowdeep_sports_api_key", cleanSports);
-      }
-    } catch {}
-
-    updatePreferences({
-      weatherApiKey: cleanWeather,
-      sportsApiKey: cleanSports,
-    });
-    toast({
-      title: "API Keys Saved Successfully",
-      description: "Live AI credentials updated. Universal Chat and creative studios are now connected.",
-    });
-  };
 
   const handleSaveProfile = async () => {
     const cleanName = displayNameInput.trim();
@@ -487,15 +426,14 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
 
   const TABS = [
     { id: "general", label: "1. General & AI Engine", icon: Sliders },
-    { id: "apikeys", label: "2. API Keys & Integrations", icon: Key },
-    { id: "shortcuts", label: "3. Keyboard Shortcuts", icon: Keyboard },
-    { id: "navigation", label: "4. Customize Navigation", icon: SlidersHorizontal },
-    { id: "appearance", label: "5. Appearance & Theme", icon: Palette },
-    { id: "profile", label: "6. Profile & Persona", icon: User },
-    { id: "pricing", label: "7. Pricing & Plans", icon: Star },
-    { id: "feedback", label: "8. Send Feedback & Ideas", icon: MessageSquarePlus },
-    { id: "data", label: "9. Data & Privacy", icon: Shield },
-    { id: "about", label: "10. About & Status", icon: Info },
+    { id: "shortcuts", label: "2. Keyboard Shortcuts", icon: Keyboard },
+    { id: "navigation", label: "3. Customize Navigation", icon: SlidersHorizontal },
+    { id: "appearance", label: "4. Appearance & Theme", icon: Palette },
+    { id: "profile", label: "5. Profile & Persona", icon: User },
+    { id: "pricing", label: "6. Pricing & Plans", icon: Star },
+    { id: "feedback", label: "7. Send Feedback & Ideas", icon: MessageSquarePlus },
+    { id: "data", label: "8. Data & Privacy", icon: Shield },
+    { id: "about", label: "9. About & Status", icon: Info },
   ] as const;
 
   const currentOrderedNavItems = getOrderedFeatures(featureOrder);
@@ -871,287 +809,7 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
               </div>
             )}
 
-            {/* 2. API KEYS & INTEGRATIONS */}
-            {activeTab === "apikeys" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between pb-3 border-b border-border">
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <Key className="w-4 h-4 text-cyan-500" />
-                      <span>API Keys & Service Credentials</span>
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Connect your Google Gemini AI key, Pexels video key, and weather feeds. You can save them here directly or configure them in Vercel.
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={handleSaveApiKeys}
-                    className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-xs rounded-xl shadow-sm"
-                  >
-                    <Check className="w-3.5 h-3.5 mr-1.5" />
-                    Save All Keys
-                  </Button>
-                </div>
-
-                {/* Gemini API Key */}
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-xs font-bold text-foreground">
-                          Google Gemini AI API Key
-                        </Label>
-                        {geminiApiKeyInput.trim() ? (
-                          <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                            Configured
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                            Required for Live AI
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Powers Universal Chat, Live Audio, 8K reasoning, Document Studio, and Code Interpreter.
-                      </p>
-                    </div>
-                    <a
-                      href="https://aistudio.google.com/app/apikey"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] font-medium text-cyan-500 hover:underline shrink-0"
-                    >
-                      Get Free Key ↗
-                    </a>
-                  </div>
-
-                  <div className="relative">
-                    <Input
-                      type={showGeminiKey ? "text" : "password"}
-                      value={geminiApiKeyInput}
-                      onChange={(e) => setGeminiApiKeyInput(e.target.value)}
-                      placeholder="AIzaSy..."
-                      className="pr-10 text-xs font-mono bg-background/80 rounded-xl"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowGeminiKey(!showGeminiKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Vercel Environment Variable: <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-cyan-500">GEMINI_API_KEY</code>
-                  </p>
-                </div>
-
-                {/* Pexels API Key */}
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-xs font-bold text-foreground">
-                          Pexels Video & Photography Key
-                        </Label>
-                        {pexelsApiKeyInput.trim() ? (
-                          <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                            Configured
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            Optional (Stock Fallback)
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Powers Director AI Video Studio & high-definition photo matching.
-                      </p>
-                    </div>
-                    <a
-                      href="https://www.pexels.com/api/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] font-medium text-cyan-500 hover:underline shrink-0"
-                    >
-                      Get Free Key ↗
-                    </a>
-                  </div>
-
-                  <div className="relative">
-                    <Input
-                      type={showPexelsKey ? "text" : "password"}
-                      value={pexelsApiKeyInput}
-                      onChange={(e) => setPexelsApiKeyInput(e.target.value)}
-                      placeholder="Paste your Pexels API Key..."
-                      className="pr-10 text-xs font-mono bg-background/80 rounded-xl"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPexelsKey(!showPexelsKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPexelsKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Vercel Environment Variable: <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-cyan-500">PEXELS_API_KEY</code>
-                  </p>
-                </div>
-
-                {/* Weather Station API Key */}
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-xs font-bold text-foreground">
-                          OpenWeather Meteorological Key
-                        </Label>
-                        {weatherApiKeyInput.trim() ? (
-                          <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                            Configured
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            Optional (Open-Meteo Active)
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        High-precision meteorological forecasts & radar feeds for Weather Station.
-                      </p>
-                    </div>
-                    <a
-                      href="https://openweathermap.org/api"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] font-medium text-cyan-500 hover:underline shrink-0"
-                    >
-                      Get Free Key ↗
-                    </a>
-                  </div>
-
-                  <div className="relative">
-                    <Input
-                      type={showWeatherKey ? "text" : "password"}
-                      value={weatherApiKeyInput}
-                      onChange={(e) => setWeatherApiKeyInput(e.target.value)}
-                      placeholder="OpenWeather API key..."
-                      className="pr-10 text-xs font-mono bg-background/80 rounded-xl"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowWeatherKey(!showWeatherKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showWeatherKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Vercel Environment Variable: <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-cyan-500">VITE_WEATHER_API_KEY</code>
-                  </p>
-                </div>
-
-                {/* Sports API Key */}
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-xs font-bold text-foreground">
-                          Sports Hub Live Odds & Match Engine Key
-                        </Label>
-                        {sportsApiKeyInput.trim() ? (
-                          <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                            Configured
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            Optional (Simulated Live Engine)
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Connects live sporting odds, play-by-play, and tournament data.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative">
-                    <Input
-                      type={showSportsKey ? "text" : "password"}
-                      value={sportsApiKeyInput}
-                      onChange={(e) => setSportsApiKeyInput(e.target.value)}
-                      placeholder="The-Odds-API key..."
-                      className="pr-10 text-xs font-mono bg-background/80 rounded-xl"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSportsKey(!showSportsKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showSportsKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Vercel Environment Variable: <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-cyan-500">VITE_SPORTS_API_KEY</code>
-                  </p>
-                </div>
-
-                {/* Vercel Environment Variables Guide */}
-                <div className="p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 space-y-3">
-                  <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-500" />
-                    <span>Vercel Environment Variables Guide (Copy & Paste)</span>
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    In your <strong>Vercel Dashboard</strong> → <strong>know-deep</strong> project → <strong>Settings</strong> → <strong>Environment Variables</strong>, add these exact keys:
-                  </p>
-
-                  <div className="space-y-1.5 text-xs font-mono">
-                    {[
-                      { name: "GEMINI_API_KEY", desc: "Your Google Gemini API Key (starts with AIzaSy...)" },
-                      { name: "PEXELS_API_KEY", desc: "Pexels video/photo API Key" },
-                      { name: "VITE_WEATHER_API_KEY", desc: "OpenWeather API Key" },
-                      { name: "VITE_SPORTS_API_KEY", desc: "The-Odds-API Sports Key" },
-                    ].map((item) => (
-                      <div key={item.name} className="flex items-center justify-between p-2 rounded-xl bg-background/60 border border-border/60">
-                        <div>
-                          <span className="font-bold text-cyan-500">{item.name}</span>
-                          <span className="text-[10px] text-muted-foreground block font-sans">{item.desc}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(item.name);
-                            toast({ title: `Copied ${item.name}`, description: "Paste as the Key name in Vercel." });
-                          }}
-                          className="px-2.5 py-1 text-[11px] rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors font-sans"
-                        >
-                          Copy Key Name
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="text-[10px] text-muted-foreground pt-1">
-                    💡 <em>After adding variables in Vercel, go to <strong>Deployments</strong> → click <strong>...</strong> on latest deployment → <strong>Redeploy</strong> for changes to take effect.</em>
-                  </p>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <Button
-                    onClick={handleSaveApiKeys}
-                    className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-xs px-6 py-2 rounded-xl shadow-md"
-                  >
-                    <Check className="w-4 h-4 mr-2" />
-                    Save & Apply API Keys
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* 3. KEYBOARD SHORTCUTS */}
+            {/* 2. KEYBOARD SHORTCUTS */}
             {activeTab === "shortcuts" && (
               <KeyboardShortcutsCheatsheetView />
             )}

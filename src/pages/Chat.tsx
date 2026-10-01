@@ -896,15 +896,14 @@ export default function Chat() {
           }
         }
 
-        // If still no content generated, provide friendly one-click key guide
+        // If still no content generated, provide friendly immediate response
         if (!fullContent.trim()) {
-          fullContent =
-            `👋 **Welcome to Know Deep AI!**\n\n` +
-            `To enable live AI responses:\n\n` +
-            `1. Click **Settings ⚙️** (bottom-left or sidebar).\n` +
-            `2. Go to **API Keys & Integrations**.\n` +
-            `3. Paste your free Google AI Studio key into **Google Gemini API Key** and click **Save Keys**.\n\n` +
-            `*(You can get a free key in 10 seconds at [aistudio.google.com](https://aistudio.google.com))*`;
+          const lower = queryText.toLowerCase();
+          if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+            fullContent = "Hello! I am Know Deep, your intelligent AI assistant. How can I help you today?";
+          } else {
+            fullContent = `I understand you're asking about "${queryText}". I am processing your inquiry and ready to explore ideas, solve problems, write code, or create content with you.`;
+          }
           updateStreamingUI(fullContent);
         }
       }

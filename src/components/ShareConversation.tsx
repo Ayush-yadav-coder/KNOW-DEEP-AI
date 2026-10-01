@@ -169,19 +169,33 @@ export const ShareConversation = ({ conversationId, conversationTitle }: ShareCo
                 </Button>
               </div>
 
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const text = encodeURIComponent(`Check out this conversation on Know Deep AI: "${conversationTitle}"\n${shareUrl}`);
+                    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+                  }}
+                  className="flex-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1.5 h-9"
+                >
+                  <span>Share on WhatsApp</span>
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between text-sm text-muted-foreground pt-1">
                 <span>Views: {sharedLink.view_count}</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={deleteShareLink}
                   disabled={isLoading}
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive text-xs"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
                   ) : (
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-4 h-4 mr-1.5" />
                   )}
                   Remove Link
                 </Button>

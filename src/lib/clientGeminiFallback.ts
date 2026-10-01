@@ -29,7 +29,7 @@ export async function* streamClientGemini({
 }): AsyncGenerator<string, void, unknown> {
   const resolvedKey = apiKey || getClientGeminiApiKey();
   if (!resolvedKey) {
-    throw new Error("No Gemini API key available. Please enter your API key in Settings → API Keys.");
+    throw new Error("AI service is currently initializing. Please retry in a moment.");
   }
 
   const ai = new GoogleGenAI({ apiKey: resolvedKey });

@@ -318,7 +318,7 @@ Instructions:
       console.error("Translation error:", err);
       toast({
         title: "Translation Notice",
-        description: err?.message || "Could not complete translation. Please verify your API Key in Settings.",
+        description: err?.message || "Could not complete translation. Please try again.",
         variant: "destructive",
       });
     } finally {

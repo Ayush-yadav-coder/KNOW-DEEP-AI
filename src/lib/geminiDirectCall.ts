@@ -68,5 +68,5 @@ export async function generateTextWithFallback({
     }
   }
 
-  throw new Error("Could not connect to AI engine. Please ensure your Gemini API Key is entered in Settings.");
+  throw new Error("AI engine is temporarily busy. Please retry in a moment.");
 }

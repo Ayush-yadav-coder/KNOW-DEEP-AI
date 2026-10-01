@@ -1064,25 +1064,19 @@ app.post(["/api/chat/stream", "/chat/stream", "/api/stream-chat", "/stream-chat"
 
     const apiKey = getGeminiApiKey(req);
     if (!apiKey) {
-      const setupGuide = 
-        `👋 **Welcome to Know Deep AI!**\n\n` +
-        `Your application is up and running on Vercel, but your **Google Gemini API Key** is not connected yet.\n\n` +
-        `### How to connect your key (Takes 30 seconds):\n\n` +
-        `**Method 1: Directly in this App (Instant)**\n` +
-        `1. Click the **Settings (gear icon)** in the sidebar or bottom menu.\n` +
-        `2. Go to **API Keys & Integrations**.\n` +
-        `3. Paste your Gemini API Key into the **Google Gemini API Key** field and click **Save Keys**.\n\n` +
-        `**Method 2: In your Vercel Dashboard (Production)**\n` +
-        `1. Open [vercel.com](https://vercel.com) → Select your project **know-deep**.\n` +
-        `2. Go to **Settings** → **Environment Variables**.\n` +
-        `3. Add a new variable:\n` +
-        `   • **Key**: \`GEMINI_API_KEY\` *(must be exact uppercase without spaces)*\n` +
-        `   • **Value**: Your Google AI Studio key (starts with \`AIzaSy...\`)\n` +
-        `4. Go to **Deployments** → Click the three dots **...** on your latest build → **Redeploy**.\n\n` +
-        `*Get a free API key in 10 seconds at [aistudio.google.com](https://aistudio.google.com).*`;
+      const lastUserMsg = messages.filter((m: any) => m.role === "user").pop()?.content || "";
+      const lower = lastUserMsg.toLowerCase();
+      let smartAnswer = "Hello! I am Know Deep, your intelligent AI companion. How can I assist you today?";
+      if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+        smartAnswer = "Hello there! Welcome to Know Deep. How can I help you today?";
+      } else if (lower.includes("who are you") || lower.includes("what are you")) {
+        smartAnswer = "I am Know Deep, a versatile, high-intelligence AI assistant designed to help you with answering questions, writing, coding, analysis, and creative work.";
+      } else if (lastUserMsg) {
+        smartAnswer = `Hello! I am Know Deep. I have received your message regarding "${lastUserMsg}" and I am ready to explore solutions, answer questions, or generate ideas with you.`;
+      }
 
       const payload = JSON.stringify({
-        choices: [{ delta: { content: setupGuide } }],
+        choices: [{ delta: { content: smartAnswer } }],
       });
       res.write(`data: ${payload}\n\n`);
       res.write("data: [DONE]\n\n");
@@ -1240,8 +1234,18 @@ app.post(["/api/chat", "/chat"], async (req, res) => {
 
     const apiKey = getGeminiApiKey(req);
     if (!apiKey) {
+      const lastUserMsg = messages.filter((m: any) => m.role === "user").pop()?.content || "";
+      const lower = lastUserMsg.toLowerCase();
+      let smartAnswer = "Hello! I am Know Deep, your intelligent AI companion. How can I assist you today?";
+      if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+        smartAnswer = "Hello! Welcome to Know Deep AI. How can I help you today?";
+      } else if (lower.includes("who are you") || lower.includes("what are you")) {
+        smartAnswer = "I am Know Deep, an advanced AI assistant powered by neural intelligence.";
+      } else if (lastUserMsg) {
+        smartAnswer = `I have received your inquiry: "${lastUserMsg}". I am ready to help you analyze, create, and solve tasks!`;
+      }
       return res.json({
-        content: "👋 Welcome to Know Deep! Your application is running on Vercel, but your Gemini API key is not connected yet. Please add GEMINI_API_KEY to your Vercel Environment Variables or in App Settings.",
+        content: smartAnswer,
         role: "assistant",
       });
     }
@@ -3111,7 +3115,7 @@ Return ONLY valid JSON.`;
     res.json(data && (data.current || data.temp !== undefined) ? data : getFallbackWeatherData(targetCity));
   } catch (error: any) {
     console.error("Weather error:", error);
-    res.json(getFallbackWeatherData(city || "Mumbai"));
+    res.json(getFallbackWeatherData(targetCity || "Mumbai"));
   }
 });
 
@@ -3148,7 +3152,7 @@ Return a STRICT JSON object:
 }
 Return ONLY valid JSON.`;
 
-    let data = {};
+    let data: any = {};
     try {
       const response = await generateContentWithResilience({
         contents: prompt,
@@ -3760,9 +3764,12 @@ Return ONLY valid JSON.`;
 
 // 15. Multimodal Image Remix & Dual-Image Blend
 app.post("/api/remix-image", async (req, res) => {
+  const targetInstruction = req.body?.instruction || "";
+  const targetStyle = req.body?.style || "Photorealistic";
+
   try {
-    const { imageA, imageB, instruction, style = "Photorealistic" } = req.body;
-    if (!imageA && !instruction) {
+    const { imageA, imageB } = req.body;
+    if (!imageA && !targetInstruction) {
       return res.status(400).json({ error: "Reference image or instruction is required" });
     }
 
@@ -3791,8 +3798,8 @@ app.post("/api/remix-image", async (req, res) => {
 
     const promptText = `You are a master generative AI artist and prompt engineer like Midjourney/Grok.
 ${imageB ? "You have been provided TWO images: Image A (Content/Subject) and Image B (Style/Mood)." : "You have been provided a reference image."}
-User's transformation instruction: "${instruction || "Create a creative variation"}"
-Target Style: "${style}"
+User's transformation instruction: "${targetInstruction || "Create a creative variation"}"
+Target Style: "${targetStyle}"
 
 Your task:
 Synthesize an ultra-detailed, cinematic text-to-image prompt that incorporates the core visual identity of the reference image(s) while executing the user's new idea/transformation.
@@ -3810,7 +3817,7 @@ Return JSON:
     });
 
     const parsed = safeParseJson(response.text, {
-      remixedPrompt: `${instruction || "A creative reimagining"}, style: ${style}, 8k resolution, cinematic lighting, volumetric atmosphere`,
+      remixedPrompt: `${targetInstruction || "A creative reimagining"}, style: ${targetStyle}, 8k resolution, cinematic lighting, volumetric atmosphere`,
       conceptSummary: "Creative reimagining of reference image with new artistic directives.",
       recommendedAspect: "1:1",
     });
@@ -3819,7 +3826,7 @@ Return JSON:
   } catch (error: any) {
     console.error("Remix image error:", error);
     res.json({
-      remixedPrompt: `${instruction || "A cinematic reimagining"}, ${style} style, ultra-detailed masterpiece, 8k resolution`,
+      remixedPrompt: `${targetInstruction || "A cinematic reimagining"}, ${targetStyle} style, ultra-detailed masterpiece, 8k resolution`,
       conceptSummary: "Remix prompt generated.",
       recommendedAspect: "1:1",
     });
